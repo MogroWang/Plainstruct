@@ -11,6 +11,7 @@ import SiteSettingsView from "@/views/SiteSettingsView.vue";
 import BuildView from "@/views/BuildView.vue";
 import ThemesView from "@/views/ThemesView.vue";
 import PublishView from "@/views/PublishView.vue";
+import SettingsView from "@/views/SettingsView.vue";
 import AboutView from "@/views/AboutView.vue";
 
 const app = useAppStore();
@@ -22,6 +23,7 @@ const viewMap = {
   build: BuildView,
   theme: ThemesView,
   publish: PublishView,
+  settings: SettingsView,
 } as const;
 
 const currentView = computed(() => viewMap[app.view as keyof typeof viewMap]);
@@ -40,6 +42,9 @@ onMounted(() => {
         <Transition name="view" mode="out-in">
           <!-- 关于页(站点打开与否均可访问) -->
           <AboutView v-if="app.view === 'about'" key="about" class="absolute inset-0" />
+
+          <!-- 设置页(站点打开与否均可访问) -->
+          <SettingsView v-if="app.view === 'settings'" key="settings" class="absolute inset-0" />
 
           <!-- 启动页 -->
           <StartView v-else-if="!site.open" key="start" class="absolute inset-0" />

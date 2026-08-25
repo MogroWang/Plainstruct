@@ -31,6 +31,7 @@ export default {
     build: "构建",
     theme: "主题",
     publish: "发布",
+    settings: "设置",
     about: "关于",
   },
   start: {
@@ -212,6 +213,18 @@ export default {
     featureBuild: "一键构建为纯静态站点,链接保持相对路径",
     featureTheme: "内置浅色/暗色主题,可导入导出 ZIP",
     featurePublish: "免 Git,直接发布到 GitHub Pages",
+  },
+  settings: {
+    title: "软件设置",
+    subtitle: "应用全局偏好,与站点无关。",
+    sectionLanguage: "语言",
+    sectionEditor: "编辑器",
+    sectionAbout: "关于",
+    language: "界面语言",
+    languageHint: "切换后立即生效,重开窗口后保持。",
+    autosave: "自动保存",
+    autosaveHint: "编辑文档时自动保存,无需手动 Ctrl+S。",
+    version: "版本号",
   },
   ui: {
     confirm: "确认",

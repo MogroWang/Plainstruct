@@ -31,6 +31,7 @@ export default {
     build: "Build",
     theme: "Theme",
     publish: "Publish",
+    settings: "Settings",
     about: "About",
   },
   start: {
@@ -212,6 +213,18 @@ export default {
     featureBuild: "One-click build to a pure static site with relative links",
     featureTheme: "Built-in light & dark themes, import/export as ZIP",
     featurePublish: "Publish to GitHub Pages directly, no Git required",
+  },
+  settings: {
+    title: "Settings",
+    subtitle: "App-wide preferences, independent of any site.",
+    sectionLanguage: "Language",
+    sectionEditor: "Editor",
+    sectionAbout: "About",
+    language: "Interface language",
+    languageHint: "Takes effect immediately and persists across restarts.",
+    autosave: "Autosave",
+    autosaveHint: "Save documents automatically as you edit, no manual Ctrl+S needed.",
+    version: "Version",
   },
   ui: {
     confirm: "Confirm",

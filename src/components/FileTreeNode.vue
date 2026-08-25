@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from "vue";
 import type { TreeNode } from "@/ipc/types";
+import { dirname } from "@/lib/paths";
 import { useEditorStore } from "@/stores/editor";
 import AppIcon from "./AppIcon.vue";
 
@@ -38,8 +39,9 @@ function onDragStart(e: DragEvent) {
 }
 
 function onDragOver(e: DragEvent) {
-  if (!isDir.value) return;
+  // 始终允许 drop,防止拖过子节点时浏览器拒绝放置
   e.preventDefault();
+  if (!isDir.value) return;
   if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
   dragDepth++;
   dragOver.value = true;
@@ -58,7 +60,10 @@ function onDrop(e: DragEvent) {
   dragOver.value = false;
   dragDepth = 0;
   const src = e.dataTransfer?.getData("text/plain");
-  if (src && src !== props.node.path) emit("move", src, props.node.path);
+  if (!src) return;
+  // 拖到文件节点上时,自动取其父目录作为目标
+  const targetDir = isDir.value ? props.node.path : dirname(props.node.path);
+  if (src !== targetDir) emit("move", src, targetDir);
 }
 </script>
 

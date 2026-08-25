@@ -3,7 +3,7 @@ import { ipc } from "@/ipc/ipc";
 import type { AppSettings, Bootstrap, Locale, Platform, RecentSite } from "@/ipc/types";
 import { i18n, type Locale as I18nLocale } from "@/i18n";
 
-export type AppView = "editor" | "site" | "build" | "theme" | "publish" | "about";
+export type AppView = "editor" | "site" | "build" | "theme" | "publish" | "settings" | "about";
 
 interface State {
   ready: boolean;

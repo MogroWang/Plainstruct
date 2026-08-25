@@ -31,6 +31,16 @@ const items: { view: AppView; icon: string; label: string }[] = [
 
     <button
       class="nav-btn mt-auto"
+      :class="{ active: app.view === 'settings' }"
+      :title="t('nav.settings')"
+      :aria-label="t('nav.settings')"
+      @click="app.setView('settings')"
+    >
+      <AppIcon name="settings" :size="18" />
+    </button>
+
+    <button
+      class="nav-btn"
       :class="{ active: app.view === 'about' }"
       :title="t('nav.about')"
       :aria-label="t('nav.about')"
