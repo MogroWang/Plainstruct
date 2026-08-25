@@ -182,11 +182,13 @@ function renderOnePage(
 function inlineThemeAssets(html: string, files: Record<string, string>): string {
   return html
     .replace(/<link\b[^>]*href="([^"]+)"[^>]*>/gi, (m, href: string) => {
-      const content = files["assets/" + href.replace(/^(\.\.\/)+/, "")];
+      const clean = href.replace(/^(\.\.\/)+/, "");
+      const content = files[clean] ?? files["assets/" + clean];
       return content !== undefined ? `<style>\n${content}\n</style>` : m;
     })
     .replace(/<script\b[^>]*src="([^"]+)"[^>]*>\s*<\/script>/gi, (m, src: string) => {
-      const content = files["assets/" + src.replace(/^(\.\.\/)+/, "")];
+      const clean = src.replace(/^(\.\.\/)+/, "");
+      const content = files[clean] ?? files["assets/" + clean];
       return content !== undefined ? `<script>\n${content}\n</script>` : m;
     });
 }

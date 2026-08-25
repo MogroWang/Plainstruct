@@ -108,6 +108,11 @@ async function openRecent(path: string) {
         <AppIcon name="info" :size="15" />
         {{ t("nav.about") }}
       </button>
+
+      <button class="btn btn-ghost mt-2 h-9 px-4 text-[12.5px] text-ink-3" @click="app.setView('settings')">
+        <AppIcon name="settings" :size="15" />
+        {{ t("nav.settings") }}
+      </button>
     </div>
 
     <!-- 新建站点向导 -->

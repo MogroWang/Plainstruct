@@ -24,9 +24,10 @@ async function winAction(action: "minimize" | "toggleMaximize" | "close") {
   } else await win.close();
 }
 
-async function toggleLocale() {
-  const next = app.settings.locale === "zh-CN" ? "en-US" : "zh-CN";
-  await app.setLocale(next);
+async function goToStart() {
+  if (site.open) {
+    await site.close();
+  }
 }
 </script>
 
@@ -43,7 +44,7 @@ async function toggleLocale() {
       <button class="btn-icon !h-3 !w-3 !rounded-full" style="background:#e5e3e1" :title="t('titlebar.maximize')" @click="winAction('toggleMaximize')" />
     </div>
 
-    <div class="flex items-center gap-2" data-tauri-drag-region>
+    <div class="flex items-center gap-2 cursor-pointer" data-tauri-drag-region @click="goToStart">
       <img src="/logo.svg" alt="" class="h-5 w-5" draggable="false" />
       <span class="text-[13px] font-semibold tracking-tight">{{ t("app.name") }}</span>
       <span v-if="site.open && site.config" class="text-[13px] text-ink-3">/</span>
@@ -51,14 +52,6 @@ async function toggleLocale() {
     </div>
 
     <div class="ml-auto flex items-center gap-1">
-      <button
-        class="btn-icon"
-        :title="t('titlebar.language')"
-        @click="toggleLocale"
-      >
-        <AppIcon name="globe" :size="16" />
-      </button>
-
       <template v-if="showWindowControls && !onMac">
         <button class="btn-icon" :title="t('titlebar.minimize')" @click="winAction('minimize')">
           <AppIcon name="minus" :size="14" />

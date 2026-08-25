@@ -24,8 +24,15 @@ async function onAutosaveToggle() {
 <template>
   <div class="flex h-full flex-col">
     <div class="border-b border-line px-6 py-5">
-      <h2 class="text-[18px] font-semibold tracking-tight">{{ t("settings.title") }}</h2>
-      <p class="mt-1 text-[13px] text-ink-3">{{ t("settings.subtitle") }}</p>
+      <div class="flex items-center gap-3">
+        <button class="btn-icon" :title="t('common.back')" @click="app.setView('editor')">
+          <AppIcon name="arrowLeft" :size="18" />
+        </button>
+        <div>
+          <h2 class="text-[18px] font-semibold tracking-tight">{{ t("settings.title") }}</h2>
+          <p class="mt-1 text-[13px] text-ink-3">{{ t("settings.subtitle") }}</p>
+        </div>
+      </div>
     </div>
 
     <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
