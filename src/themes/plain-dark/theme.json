@@ -1,0 +1,37 @@
+{
+  "id": "plain-dark",
+  "name": "素构 · 暗色",
+  "version": "1.0.0",
+  "author": "MogroWang Studio",
+  "description": "默认暗色主题:暖黑纸感,浅墨强调,系统字体。",
+  "config": [
+    {
+      "key": "accentColor",
+      "label": "强调色",
+      "type": "color",
+      "default": "#e7e5e4"
+    },
+    {
+      "key": "sidebarWidth",
+      "label": "侧栏宽度",
+      "type": "number",
+      "default": 260,
+      "min": 200,
+      "max": 360,
+      "step": 10
+    },
+    {
+      "key": "bodyFont",
+      "label": "正文字体",
+      "type": "select",
+      "default": "system",
+      "options": ["system", "serif"]
+    },
+    {
+      "key": "showDescription",
+      "label": "显示站点描述",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}

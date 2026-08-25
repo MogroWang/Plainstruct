@@ -1,0 +1,133 @@
+/* 过渡动画 -- 全部只动 transform/opacity,进出同路径、镜像缓动 */
+
+/* ---------- 视图切换 ---------- */
+.view-enter-active {
+  transition:
+    opacity var(--duration-slow) var(--ease-plain),
+    transform var(--duration-slow) var(--ease-plain);
+}
+.view-leave-active {
+  transition:
+    opacity var(--duration-base) var(--ease-plain-inverse),
+    transform var(--duration-base) var(--ease-plain-inverse);
+}
+.view-enter-from,
+.view-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* ---------- 列表项 ---------- */
+.list-enter-active {
+  transition:
+    opacity var(--duration-slow) var(--ease-plain),
+    transform var(--duration-slow) var(--ease-plain);
+}
+.list-leave-active {
+  transition:
+    opacity var(--duration-fast) var(--ease-plain-inverse),
+    transform var(--duration-fast) var(--ease-plain-inverse);
+  position: absolute;
+  width: 100%;
+}
+.list-move {
+  transition: transform var(--duration-slow) var(--ease-plain);
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* ---------- 模态:从内容尺度浮现 ---------- */
+.modal-enter-active {
+  transition:
+    opacity var(--duration-base) var(--ease-plain),
+    transform var(--duration-slow) var(--ease-plain);
+}
+.modal-leave-active {
+  transition:
+    opacity var(--duration-base) var(--ease-plain-inverse),
+    transform var(--duration-base) var(--ease-plain-inverse);
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .modal-card,
+.modal-leave-to .modal-card {
+  transform: scale(0.98) translateY(4px);
+}
+.modal-card {
+  transition:
+    transform var(--duration-slow) var(--ease-plain);
+}
+
+/* ---------- 遮罩 ---------- */
+.scrim-enter-active,
+.scrim-leave-active {
+  transition: opacity var(--duration-base) ease;
+}
+.scrim-enter-from,
+.scrim-leave-to {
+  opacity: 0;
+}
+
+/* ---------- 通知 ---------- */
+.toast-enter-active {
+  transition:
+    opacity var(--duration-slow) var(--ease-plain),
+    transform var(--duration-slow) var(--ease-plain);
+}
+.toast-leave-active {
+  transition:
+    opacity var(--duration-base) var(--ease-plain-inverse),
+    transform var(--duration-base) var(--ease-plain-inverse);
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* ---------- 树形分组展开(单子树,开销极小) ---------- */
+.tree-group {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--duration-slow) var(--ease-plain);
+}
+.tree-group[data-collapsed="true"] {
+  grid-template-rows: 0fr;
+}
+.tree-group > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ---------- 下拉菜单 ---------- */
+.pop-enter-active {
+  transition:
+    opacity var(--duration-base) var(--ease-plain),
+    transform var(--duration-slow) var(--ease-plain);
+}
+.pop-leave-active {
+  transition:
+    opacity var(--duration-fast) var(--ease-plain-inverse),
+    transform var(--duration-fast) var(--ease-plain-inverse);
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.99);
+}
+
+/* ---------- 减少动态效果 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

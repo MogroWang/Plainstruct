@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{#if page.title}}{{page.title}} · {{/if}}{{site.name}}</title>
+  {{#if site.description}}<meta name="description" content="{{site.description}}">{{/if}}
+  <style>
+    :root {
+      --ps-accent: {{config.accentColor}};
+      --ps-sidebar-w: {{config.sidebarWidth}}px;
+    }
+  </style>
+  <link rel="stylesheet" href="{{asset "style.css"}}">
+</head>
+<body class="font-{{config.bodyFont}}">
+  <div class="ps-shell">
+    <aside class="ps-sidebar">
+      <a class="ps-site" href="{{asset "index.html"}}">
+        {{#if site.logo}}<img class="ps-logo" src="{{site.logo}}" alt="{{site.name}}">{{/if}}
+        <span class="ps-site-name">{{site.name}}</span>
+      </a>
+      {{#if config.showDescription}}{{#if site.description}}<p class="ps-site-desc">{{site.description}}</p>{{/if}}{{/if}}
+      <nav class="ps-nav">{{> nav}}</nav>
+    </aside>
+    <main class="ps-main">
+      {{> page}}
+    </main>
+  </div>
+</body>
+</html>

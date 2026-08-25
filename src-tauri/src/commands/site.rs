@@ -1,0 +1,174 @@
+/** 站点命令:创建/打开/关闭、站点配置、logo */
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use tauri::State;
+
+use crate::commands::app::touch_recent;
+use crate::state::AppState;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SiteThemeRef {
+    pub id: String,
+    pub source: String,
+    pub config: serde_json::Value,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SiteConfig {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo: Option<String>,
+    pub theme: SiteThemeRef,
+}
+
+impl Default for SiteConfig {
+    fn default() -> Self {
+        Self {
+            name: "未命名站点".into(),
+            description: None,
+            logo: None,
+            theme: SiteThemeRef {
+                id: "plain-light".into(),
+                source: "builtin".into(),
+                config: serde_json::json!({}),
+            },
+        }
+    }
+}
+
+pub fn plainstruct_dir(root: &PathBuf) -> PathBuf {
+    root.join(".plainstruct")
+}
+
+fn site_config_path(root: &PathBuf) -> PathBuf {
+    plainstruct_dir(root).join("site.json")
+}
+
+pub fn read_site_config_file(root: &PathBuf) -> Result<SiteConfig, String> {
+    let path = site_config_path(root);
+    let text = std::fs::read_to_string(&path).map_err(|_| "not-a-site".to_string())?;
+    let mut cfg: SiteConfig = serde_json::from_str(&text).map_err(|e| format!("site.json 解析失败: {e}"))?;
+    // 规范化:空描述视为无描述
+    if cfg.description.as_deref() == Some("") {
+        cfg.description = None;
+    }
+    Ok(cfg)
+}
+
+fn write_site_config_file(root: &PathBuf, cfg: &SiteConfig) -> Result<(), String> {
+    let dir = plainstruct_dir(root);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let json = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
+    std::fs::write(site_config_path(root), json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn create_site(
+    state: State<'_, AppState>,
+    dir: String,
+    name: String,
+    description: Option<String>,
+) -> Result<SiteConfig, String> {
+    let root = PathBuf::from(&dir);
+    if plainstruct_dir(&root).exists() {
+        return Err("occupied".into());
+    }
+    let content = root.join("content");
+    if content.exists() && std::fs::read_dir(&content).map(|mut d| d.next().is_some()).unwrap_or(false) {
+        return Err("occupied".into());
+    }
+
+    std::fs::create_dir_all(root.join("content")).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(plainstruct_dir(&root).join("themes")).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(plainstruct_dir(&root).join("assets")).map_err(|e| e.to_string())?;
+
+    let title = name.trim();
+    let welcome = format!(
+        "---\ntitle: 首页\norder: 0\n---\n\n# {title}\n\n从这里开始写作。\n\n- 左侧文件树管理文档\n- 编辑与实时预览左右对照\n- 构建后可发布到 GitHub Pages\n"
+    );
+    std::fs::write(root.join("content").join("index.md"), welcome).map_err(|e| e.to_string())?;
+
+    let cfg = SiteConfig {
+        name: title.to_string(),
+        description: description.filter(|d| !d.trim().is_empty()),
+        ..Default::default()
+    };
+    write_site_config_file(&root, &cfg)?;
+
+    // 默认 GitHub 配置
+    let gh = serde_json::json!({ "owner": "", "repo": "", "branch": "gh-pages", "token": "", "autoCreate": true });
+    std::fs::write(plainstruct_dir(&root).join("github.json"), serde_json::to_string_pretty(&gh).unwrap())
+        .map_err(|e| e.to_string())?;
+
+    *state.site_root.lock().map_err(|e| e.to_string())? = Some(root.clone());
+    touch_recent(&state, title, &dir);
+    Ok(cfg)
+}
+
+#[tauri::command]
+pub fn open_site(state: State<'_, AppState>, dir: String) -> Result<SiteConfig, String> {
+    let root = PathBuf::from(&dir);
+    let cfg = read_site_config_file(&root)?;
+    *state.site_root.lock().map_err(|e| e.to_string())? = Some(root);
+    touch_recent(&state, &cfg.name, &dir);
+    Ok(cfg)
+}
+
+#[tauri::command]
+pub fn close_site(state: State<'_, AppState>) -> Result<(), String> {
+    *state.site_root.lock().map_err(|e| e.to_string())? = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_site_root(state: State<'_, AppState>) -> Result<String, String> {
+    Ok(state.site_root()?.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn read_site_config(state: State<'_, AppState>) -> Result<SiteConfig, String> {
+    let root = state.site_root()?;
+    read_site_config_file(&root)
+}
+
+#[tauri::command]
+pub fn save_site_config(state: State<'_, AppState>, cfg: SiteConfig) -> Result<SiteConfig, String> {
+    let root = state.site_root()?;
+    let mut cfg = cfg;
+    if cfg.description.as_deref() == Some("") {
+        cfg.description = None;
+    }
+    write_site_config_file(&root, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
+pub fn set_site_logo(state: State<'_, AppState>, src_path: String) -> Result<String, String> {
+    let root = state.site_root()?;
+    let src = PathBuf::from(&src_path);
+    let ext = src
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .filter(|e| matches!(e.as_str(), "png" | "svg" | "jpg" | "jpeg" | "webp" | "ico" | "gif"))
+        .ok_or("不支持的图片格式")?;
+    let assets = plainstruct_dir(&root).join("assets");
+    std::fs::create_dir_all(&assets).map_err(|e| e.to_string())?;
+    let stored = format!("logo.{ext}");
+    std::fs::copy(&src, assets.join(&stored)).map_err(|e| e.to_string())?;
+    Ok(stored)
+}
+
+#[tauri::command]
+pub fn remove_site_logo(state: State<'_, AppState>) -> Result<(), String> {
+    let root = state.site_root()?;
+    let cfg = read_site_config_file(&root)?;
+    if let Some(logo) = cfg.logo {
+        let _ = std::fs::remove_file(plainstruct_dir(&root).join("assets").join(&logo));
+    }
+    Ok(())
+}

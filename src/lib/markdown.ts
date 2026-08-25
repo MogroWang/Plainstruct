@@ -1,0 +1,209 @@
+/** Markdown 渲染 -- 编辑器预览与站点构建共用同一渲染器,预览即产出 */
+import MarkdownIt from "markdown-it";
+import hljs from "highlight.js/lib/common";
+import type { BuildWarning } from "@/ipc/types";
+import { dirname, encodePath, isMarkdown, joinPosix, mdToHtml, relPosix } from "./paths";
+
+export interface MdEnv {
+  /** 当前文档在 content/ 内的路径 */
+  currentMdPath: string;
+  /** 全部 md 文档路径:小写 -> 原始大小写(content/ 相对) */
+  docMap: Map<string, string>;
+  /** 全部内容目录路径(小写) */
+  dirSet: Set<string>;
+  warnings: BuildWarning[];
+  /** 编辑器预览模式:图片等资源改写为协议地址 */
+  resolveAsset?: (resolvedPath: string) => string;
+}
+
+function decodeHref(href: string): string {
+  try {
+    return decodeURIComponent(href);
+  } catch {
+    return href;
+  }
+}
+
+function splitHash(href: string): [target: string, hash: string] {
+  const i = href.indexOf("#");
+  if (i === -1) return [href, ""];
+  return [href.slice(0, i), href.slice(i)];
+}
+
+/** 站内链接解析:返回改写后的 href;docPath 命中文档时供预览跳转 */
+function resolveLink(raw: string, env: MdEnv): { href: string; docPath?: string } | null {
+  if (/^(https?:|mailto:|data:)/i.test(raw)) return null;
+  const [target, hash] = splitHash(raw);
+  if (!target) return null; // 纯锚点
+  const decoded = decodeHref(target);
+  if (/^(https?:|mailto:|data:)/i.test(decoded)) return null;
+
+  const currentOutDir = dirname(mdToHtml(env.currentMdPath));
+  const resolved = joinPosix(dirname(env.currentMdPath), decoded);
+
+  if (resolved.startsWith("..")) {
+    env.warnings.push({ source: env.currentMdPath, link: raw, message: "out-of-root" });
+    return null;
+  }
+
+  if (isMarkdown(resolved)) {
+    const canonical = env.docMap.get(resolved.toLowerCase());
+    const href = relPosix(currentOutDir, mdToHtml(canonical ?? resolved)) + hash;
+    if (!canonical) {
+      env.warnings.push({ source: env.currentMdPath, link: raw, message: "missing" });
+      return { href: encodePath(href) };
+    }
+    return { href: encodePath(href), docPath: canonical };
+  }
+
+  if (decoded.endsWith("/")) {
+    // 文件夹链接:指向目录(index.html 由服务器解析)
+    const dir = resolved.replace(/\/$/, "");
+    if (env.dirSet.has(dir.toLowerCase())) {
+      const href = (relPosix(currentOutDir, dir) || ".") + "/" + hash;
+      return { href: encodePath(href) };
+    }
+    env.warnings.push({ source: env.currentMdPath, link: raw, message: "missing" });
+    return null;
+  }
+
+  if (env.dirSet.has(resolved.toLowerCase()) && env.docMap.has(`${resolved.toLowerCase()}/index.md`)) {
+    const href = (relPosix(currentOutDir, resolved) || ".") + "/" + hash;
+    return { href: encodePath(href) };
+  }
+
+  // 其余(图片/附件等资源)按原相对路径引用,构建时 1:1 拷贝
+  return null;
+}
+
+const md: MarkdownIt = new MarkdownIt({
+  html: true,
+  linkify: true,
+  breaks: false,
+  highlight(code, lang) {
+    const language = lang?.trim().toLowerCase();
+    if (language && hljs.getLanguage(language)) {
+      try {
+        return hljs.highlight(code, { language }).value;
+      } catch {
+        /* 回退到转义输出 */
+      }
+    }
+    return "";
+  },
+});
+
+/* ---------- 标题锚点 id ---------- */
+
+let slugUsed: Map<string, number>;
+
+function slugify(text: string): string {
+  const slug = text
+    .toLowerCase()
+    .trim()
+    .replace(/[\s.]+/g, "-")
+    .replace(/[^\p{L}\p{N}_-]+/gu, "")
+    .replace(/^-+|-+$/g, "");
+  const base = slug || "h";
+  const n = slugUsed.get(base) ?? 0;
+  slugUsed.set(base, n + 1);
+  return n === 0 ? base : `${base}-${n + 1}`;
+}
+
+md.renderer.rules.heading_open = (tokens, idx) => {
+  const token = tokens[idx];
+  const inline = tokens[idx + 1];
+  const id = slugify(inline?.content ?? "");
+  return `<${token.tag} id="${id}">`;
+};
+
+/* ---------- 任务列表 ---------- */
+
+md.core.ruler.after("inline", "plainstruct-tasks", (state) => {
+  const tokens = state.tokens;
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i].type !== "list_item_open") continue;
+    const li = tokens[i];
+    for (let j = i + 1; j < tokens.length && tokens[j].type !== "list_item_close"; j++) {
+      if (tokens[j].type !== "inline") continue;
+      const children = tokens[j].children;
+      if (!children || !children.length) continue;
+      const first = children.find((t) => t.type === "text" && t.content.trim() !== "");
+      if (!first) continue;
+      const m = first.content.match(/^\[([ xX])\] +/);
+      if (!m) continue;
+      const checked = m[1].toLowerCase() === "x";
+      first.content = first.content.slice(m[0].length);
+      if (first.content === "") first.hidden = true;
+      const box = new state.Token("html_inline", "", 0);
+      box.content = `<input class="task-item" type="checkbox" disabled${checked ? " checked" : ""}>`;
+      children.unshift(box);
+      li.attrJoin("class", "task-list-item");
+    }
+  }
+  return null;
+});
+
+/* ---------- 站内链接与资源改写 ---------- */
+
+md.core.ruler.after("plainstruct-tasks", "plainstruct-links", (state) => {
+  const env = state.env as MdEnv;
+  if (!env?.docMap || !env?.warnings) return null;
+  for (const block of state.tokens) {
+    if (block.type !== "inline" || !block.children) continue;
+    for (const t of block.children) {
+      if (t.type === "link_open") {
+        const hrefIdx = t.attrIndex("href");
+        if (hrefIdx < 0) continue;
+        const raw = String(t.attrs![hrefIdx][1]);
+        const hit = resolveLink(raw, env);
+        if (hit) {
+          t.attrs![hrefIdx][1] = hit.href;
+          if (hit.docPath) t.attrSet("data-doc", hit.docPath);
+        }
+      } else if (t.type === "image") {
+        const srcIdx = t.attrIndex("src");
+        if (srcIdx < 0) continue;
+        const raw = String(t.attrs![srcIdx][1]);
+        if (/^(https?:|data:)/i.test(raw)) continue;
+        const resolved = joinPosix(dirname(env.currentMdPath), decodeHref(splitHash(raw)[0]));
+        if (resolved.startsWith("..")) continue;
+        if (env.resolveAsset) {
+          t.attrs![srcIdx][1] = env.resolveAsset(resolved);
+        }
+      }
+    }
+  }
+  return null;
+});
+
+/** 渲染正文(front-matter 已剥离) */
+export function renderMarkdown(body: string, env: MdEnv): string {
+  slugUsed = new Map();
+  return md.render(body, env);
+}
+
+export interface Heading {
+  level: number;
+  text: string;
+  id: string;
+}
+
+/** 提取标题大纲(供编辑器侧栏) */
+export function extractHeadings(body: string): Heading[] {
+  slugUsed = new Map();
+  const tokens = md.parse(body, {});
+  const out: Heading[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (!tokens[i].type.endsWith("_open")) continue;
+    if (!/^h[1-6]$/.test(tokens[i].tag)) continue;
+    const inline = tokens[i + 1];
+    if (inline?.type !== "inline") continue;
+    out.push({
+      level: Number(tokens[i].tag.slice(1)),
+      text: inline.content,
+      id: slugify(inline.content),
+    });
+  }
+  return out;
+}

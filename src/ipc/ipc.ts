@@ -1,0 +1,235 @@
+/** 统一 IPC 入口 -- Tauri 环境走 invoke,浏览器走 mock */
+import type {
+  AppSettings,
+  Bootstrap,
+  CopyItem,
+  GithubConfig,
+  OutputFile,
+  SiteConfig,
+  SyncProgress,
+  SyncResult,
+  ThemeMeta,
+  TreeNode,
+  VerifyResult,
+} from "./types";
+import { Events, listen } from "./events";
+import { mock, mockPickDirectory, mockPickImage, mockPickZip } from "./mock";
+const inTauri = "__TAURI_INTERNALS__" in window;
+
+async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
+  return tauriInvoke<T>(cmd, args);
+}
+
+function errText(e: unknown): string {
+  return typeof e === "string" ? e : e instanceof Error ? e.message : String(e);
+}
+
+export { inTauri };
+
+export const ipc = {
+  inTauri,
+
+  /* ---------- 应用 ---------- */
+  getBootstrap(): Promise<Bootstrap> {
+    return inTauri ? invoke<Bootstrap>("get_bootstrap") : mock.getBootstrap();
+  },
+  saveSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
+    return inTauri ? invoke<AppSettings>("save_settings", { patch }) : mock.saveSettings(patch);
+  },
+  logFrontend(msg: string): Promise<void> {
+    return inTauri ? invoke<void>("log_frontend", { msg }) : mock.logFrontend(msg);
+  },
+
+  /* ---------- 站点 ---------- */
+  createSite(dir: string, name: string, description?: string): Promise<SiteConfig> {
+    return inTauri
+      ? invoke<SiteConfig>("create_site", { dir, name, description })
+      : mock.createSite(dir, name, description);
+  },
+  openSite(dir: string): Promise<SiteConfig> {
+    return inTauri ? invoke<SiteConfig>("open_site", { dir }) : mock.openSite(dir);
+  },
+  closeSite(): Promise<void> {
+    return inTauri ? invoke<void>("close_site") : mock.closeSite();
+  },
+  getSiteRoot(): Promise<string> {
+    return inTauri ? invoke<string>("get_site_root") : Promise.resolve("");
+  },
+  readSiteConfig(): Promise<SiteConfig> {
+    return inTauri ? invoke<SiteConfig>("read_site_config") : mock.readSiteConfig();
+  },
+  saveSiteConfig(patch: Partial<SiteConfig>): Promise<SiteConfig> {
+    return inTauri
+      ? invoke<SiteConfig>("save_site_config", { patch })
+      : mock.saveSiteConfig(patch);
+  },
+  setSiteLogo(srcPath: string): Promise<string> {
+    return inTauri ? invoke<string>("set_site_logo", { srcPath }) : mock.setSiteLogo(srcPath);
+  },
+  removeSiteLogo(): Promise<void> {
+    return inTauri ? invoke<void>("remove_site_logo") : mock.removeSiteLogo();
+  },
+
+  /* ---------- 内容 ---------- */
+  listTree(): Promise<TreeNode[]> {
+    return inTauri ? invoke<TreeNode[]>("list_tree") : mock.listTree();
+  },
+  readDocs(paths: string[]): Promise<string[]> {
+    return inTauri ? invoke<string[]>("read_docs", { paths }) : mock.readDocs(paths);
+  },
+  saveDoc(path: string, content: string): Promise<void> {
+    return inTauri ? invoke<void>("save_doc", { path, content }) : mock.saveDoc(path, content);
+  },
+  createDoc(dir: string, name: string): Promise<string> {
+    return inTauri ? invoke<string>("create_doc", { dir, name }) : mock.createDoc(dir, name);
+  },
+  createFolder(parent: string, name: string): Promise<string> {
+    return inTauri
+      ? invoke<string>("create_folder", { parent, name })
+      : mock.createFolder(parent, name);
+  },
+  renameItem(path: string, newName: string): Promise<string> {
+    return inTauri
+      ? invoke<string>("rename_item", { path, newName })
+      : mock.renameItem(path, newName);
+  },
+  moveItem(src: string, destDir: string): Promise<string> {
+    return inTauri ? invoke<string>("move_item", { src, destDir }) : mock.moveItem(src, destDir);
+  },
+  deleteItem(path: string): Promise<void> {
+    return inTauri ? invoke<void>("delete_item", { path }) : mock.deleteItem(path);
+  },
+  importFiles(srcPaths: string[], destDir: string): Promise<number> {
+    return inTauri
+      ? invoke<number>("import_files", { srcPaths, destDir })
+      : mock.importFiles(srcPaths, destDir);
+  },
+
+  /* ---------- 构建 ---------- */
+  clearBuild(): Promise<void> {
+    return inTauri ? invoke<void>("clear_build") : mock.clearBuild();
+  },
+  writeBuildFiles(files: OutputFile[]): Promise<void> {
+    return inTauri
+      ? invoke<void>("write_build_files", { files })
+      : mock.writeBuildFiles(files);
+  },
+  copyPaths(items: CopyItem[]): Promise<void> {
+    return inTauri ? invoke<void>("copy_paths", { items }) : mock.copyPaths(items);
+  },
+
+  /* ---------- 主题 ---------- */
+  listCustomThemes(): Promise<ThemeMeta[]> {
+    return inTauri ? invoke<ThemeMeta[]>("list_custom_themes") : Promise.resolve([]);
+  },
+  readThemeFiles(themeId: string): Promise<Record<string, string>> {
+    return inTauri
+      ? invoke<Record<string, string>>("read_theme_files", { themeId })
+      : mock.readThemeFiles(themeId);
+  },
+  saveThemeFiles(themeId: string, files: Record<string, string>): Promise<void> {
+    return inTauri
+      ? invoke<void>("save_theme_files", { themeId, files })
+      : mock.saveThemeFiles(themeId, files);
+  },
+  createCustomTheme(name: string, files: Record<string, string>): Promise<ThemeMeta> {
+    return inTauri
+      ? invoke<ThemeMeta>("create_custom_theme", { name, files })
+      : mock.createCustomTheme(name, files);
+  },
+  deleteTheme(themeId: string): Promise<void> {
+    return inTauri ? invoke<void>("delete_theme", { themeId }) : mock.deleteTheme(themeId);
+  },
+  importThemeZip(zipPath: string): Promise<ThemeMeta> {
+    return inTauri
+      ? invoke<ThemeMeta>("import_theme_zip", { zipPath })
+      : mock.importThemeZip(zipPath);
+  },
+  exportThemeZip(files: Record<string, string>, destPath: string): Promise<void> {
+    return inTauri
+      ? invoke<void>("export_theme_zip", { files, destPath })
+      : mock.exportThemeZip(files, destPath);
+  },
+
+  /* ---------- GitHub ---------- */
+  githubReadConfig(): Promise<GithubConfig> {
+    return inTauri ? invoke<GithubConfig>("github_read_config") : mock.githubReadConfig();
+  },
+  githubSaveConfig(cfg: GithubConfig): Promise<void> {
+    return inTauri
+      ? invoke<void>("github_save_config", { cfg })
+      : mock.githubSaveConfig(cfg);
+  },
+  githubVerify(cfg: GithubConfig): Promise<VerifyResult> {
+    return inTauri ? invoke<VerifyResult>("github_verify", { cfg }) : mock.githubVerify(cfg);
+  },
+  async githubSync(cfg: GithubConfig, onProgress: (p: SyncProgress) => void): Promise<SyncResult> {
+    if (!inTauri) return mock.githubSync(cfg, onProgress);
+    const stop = await listen<SyncProgress>(Events.SyncProgress, (p) => onProgress(p));
+    try {
+      return await invoke<SyncResult>("github_sync", { cfg });
+    } finally {
+      stop();
+    }
+  },
+
+  /* ---------- 系统 ---------- */
+  openPath(path: string): Promise<void> {
+    return inTauri ? invoke<void>("open_path", { path }) : mock.openPath(path);
+  },
+  openExternal(url: string): Promise<void> {
+    return inTauri ? invoke<void>("open_external", { url }) : mock.openExternal(url);
+  },
+
+  /* ---------- 文件选择 ---------- */
+  async pickDirectory(): Promise<string | null> {
+    if (!inTauri) return mockPickDirectory();
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const dir = await open({ directory: true, multiple: false });
+    return typeof dir === "string" ? dir : null;
+  },
+  async pickLogo(): Promise<string | null> {
+    if (!inTauri) return mockPickImage();
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const file = await open({
+      multiple: false,
+      filters: [{ name: "Images", extensions: ["png", "svg", "jpg", "jpeg", "webp", "ico"] }],
+    });
+    return typeof file === "string" ? file : null;
+  },
+  async pickImportFiles(): Promise<string[] | null> {
+    if (!inTauri) return ["C:/Docs/imported-note.md"];
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const files = await open({
+      multiple: true,
+      filters: [
+        {
+          name: "Markdown & Images",
+          extensions: ["md", "markdown", "png", "jpg", "jpeg", "gif", "webp", "svg"],
+        },
+      ],
+    });
+    return Array.isArray(files) ? files : files ? [files] : null;
+  },
+  async pickThemeZip(): Promise<string | null> {
+    if (!inTauri) return mockPickZip();
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const file = await open({
+      multiple: false,
+      filters: [{ name: "Plainstruct Theme", extensions: ["zip"] }],
+    });
+    return typeof file === "string" ? file : null;
+  },
+  async pickZipDest(defaultName: string): Promise<string | null> {
+    if (!inTauri) return `C:/Downloads/${defaultName}`;
+    const { save } = await import("@tauri-apps/plugin-dialog");
+    const file = await save({
+      defaultPath: defaultName,
+      filters: [{ name: "Plainstruct Theme", extensions: ["zip"] }],
+    });
+    return typeof file === "string" ? file : null;
+  },
+
+  errText,
+};

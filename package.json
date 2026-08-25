@@ -1,0 +1,48 @@
+{
+  "name": "plainstruct",
+  "private": true,
+  "version": "0.1.0",
+  "description": "素构 Plainstruct - 本地静态文档（wiki）网站创建器",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "check": "vue-tsc --noEmit",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "icons": "tauri icon src-tauri/icons/icon.png -o src-tauri/icons",
+    "windows:portable": "powershell -ExecutionPolicy Bypass -File scripts/build-portable.ps1"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.8.0",
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.9",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/lang-markdown": "^6.3.2",
+    "@codemirror/language": "^6.10.8",
+    "@codemirror/search": "^6.5.10",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.2",
+    "@lezer/highlight": "^1.2.1",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@tauri-apps/plugin-opener": "^2.5.0",
+    "handlebars": "^4.7.8",
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0",
+    "pinia": "^3.0.0",
+    "vue": "^3.5.0",
+    "vue-i18n": "^11.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^26.2.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9.0",
+    "vite": "^7.0.0",
+    "vue-tsc": "^3.0.0"
+  }
+}

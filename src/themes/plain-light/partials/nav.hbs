@@ -1,0 +1,16 @@
+<ul class="ps-nav-list">
+  {{#each nav}}
+    <li class="ps-nav-item">
+      {{#if this.children}}
+        {{#if this.url}}
+          <a class="ps-nav-dir{{#if this.current}} current{{/if}}" href="{{this.url}}">{{this.title}}</a>
+        {{else}}
+          <div class="ps-nav-dir">{{this.title}}</div>
+        {{/if}}
+        {{> nav nav=this.children}}
+      {{else if this.url}}
+        <a class="ps-nav-link{{#if this.current}} current{{/if}}" href="{{this.url}}">{{this.title}}</a>
+      {{/if}}
+    </li>
+  {{/each}}
+</ul>

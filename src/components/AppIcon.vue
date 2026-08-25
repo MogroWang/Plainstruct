@@ -1,0 +1,75 @@
+<script setup lang="ts">
+/** 内联线性图标集 -- 24 网格,1.75 描边,几何克制 */
+const props = defineProps<{ name: string; size?: number }>();
+
+const paths: Record<string, string[]> = {
+  doc: ["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z", "M14 3v5h5"],
+  file: ["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z", "M14 3v5h5", "M9 13h6", "M9 17h4"],
+  sliders: ["M4 7h16", "M4 12h16", "M4 17h16", "M9 5v4", "M15 10v4", "M7 15v4"],
+  box: ["M21 8l-9-5-9 5v8l9 5 9-5z", "M3 8l9 5 9-5", "M12 13v8"],
+  palette: [
+    "M12 21a9 9 0 1 1 9-9c0 1.5-1.2 2.6-2.7 2.6H16a2 2 0 0 0-1.4 3.4c.3.3.4.6.4 1 0 1.1-1.2 2-3 2z",
+    "M7.5 10.5h.01",
+    "M12 7.5h.01",
+    "M16.5 10.5h.01",
+  ],
+  upload: ["M12 16V4", "M6 10l6-6 6 6", "M4 20h16"],
+  download: ["M12 4v12", "M6 10l6 6 6-6", "M4 20h16"],
+  plus: ["M12 5v14", "M5 12h14"],
+  folder: ["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"],
+  folderPlus: [
+    "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+    "M12 10v6",
+    "M9 13h6",
+  ],
+  filePlus: ["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z", "M14 3v5h5", "M12 11v6", "M9 14h6"],
+  chevronRight: ["M9 6l6 6-6 6"],
+  chevronDown: ["M6 9l6 6 6-6"],
+  x: ["M6 6l12 12", "M18 6L6 18"],
+  search: ["M11 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12z", "M20 20l-4.2-4.2"],
+  check: ["M5 13l4 4L19 7"],
+  alert: ["M12 4L2.8 19.5h18.4z", "M12 10v4", "M12 17.2h.01"],
+  trash: ["M4 7h16", "M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2", "M6 7l1 13h10l1-13"],
+  pencil: ["M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z", "M13.5 6.5l3 3"],
+  image: ["M4 5h16v14H4z", "M4 16l5-5 4 4 3-3 4 4", "M9 9.5h.01"],
+  external: ["M14 4h6v6", "M20 4L10 14", "M18 13v6H5V6h6"],
+  refresh: ["M20 12a8 8 0 1 1-2.3-5.6", "M20 4v5h-5"],
+  globe: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "M3 12h18", "M12 3c2.5 2.5 4 5.6 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.6-4-9s1.5-6.5 4-9z"],
+  minus: ["M5 12h14"],
+  maximize: ["M6 6h12v12H6z"],
+  restore: ["M8 8h11v11H8z", "M5 16V5h11"],
+  copy: ["M9 9h11v11H9z", "M5 15H4V4h11v1"],
+  eye: [
+    "M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z",
+    "M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z",
+  ],
+  columns: ["M4 5h16v14H4z", "M12 5v14"],
+  code: ["M8 8l-4 4 4 4", "M16 8l4 4-4 4", "M13.5 5l-3 14"],
+  window: ["M4 5h16v14H4z", "M4 9h16"],
+  arrowLeft: ["M19 12H5", "M11 6l-6 6 6 6"],
+  arrowRight: ["M5 12h14", "M13 6l6 6-6 6"],
+  more: ["M12 6h.01", "M12 12h.01", "M12 18h.01"],
+  info: [
+    "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z",
+    "M12 11v6",
+    "M12 7.5h.01",
+  ],
+  save: ["M5 4h11l3 3v13H5z", "M8 4v5h7V4", "M8 20v-6h8v6"],
+};
+</script>
+
+<template>
+  <svg
+    :width="props.size ?? 18"
+    :height="props.size ?? 18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.75"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path v-for="(d, i) in paths[props.name] ?? []" :key="i" :d="d" />
+  </svg>
+</template>

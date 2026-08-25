@@ -1,0 +1,37 @@
+{
+  "id": "plain-light",
+  "name": "素构 · 浅色",
+  "version": "1.0.0",
+  "author": "MogroWang Studio",
+  "description": "默认浅色主题:灰白纸感,墨色强调,系统字体。",
+  "config": [
+    {
+      "key": "accentColor",
+      "label": "强调色",
+      "type": "color",
+      "default": "#333333"
+    },
+    {
+      "key": "sidebarWidth",
+      "label": "侧栏宽度",
+      "type": "number",
+      "default": 260,
+      "min": 200,
+      "max": 360,
+      "step": 10
+    },
+    {
+      "key": "bodyFont",
+      "label": "正文字体",
+      "type": "select",
+      "default": "system",
+      "options": ["system", "serif"]
+    },
+    {
+      "key": "showDescription",
+      "label": "显示站点描述",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}

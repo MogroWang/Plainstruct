@@ -1,0 +1,42 @@
+/* 素构设计令牌 —— 灰白主色,单一墨色强调,无渐变。
+   4px 基准网格(间距一律取 4 的倍数),圆角 8px,非线性缓动。 */
+@theme {
+  --color-bg: #fafaf9;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f5f4;
+  --color-surface-3: #efedec;
+  --color-line: #e7e5e4;
+  --color-line-strong: #d6d3d1;
+  --color-ink: #1c1917;
+  --color-ink-2: #57534e;
+  --color-ink-3: #a8a29e;
+  --color-accent: #333333;
+  --color-accent-strong: #1c1917;
+  --color-accent-soft: #eaeae7;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fbf1f0;
+
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+
+  --ease-plain: cubic-bezier(0.23, 1, 0.32, 1);
+
+  --shadow-popover: 0 4px 16px rgba(28, 25, 23, 0.08), 0 1px 3px rgba(28, 25, 23, 0.06);
+  --shadow-window: 0 16px 48px rgba(28, 25, 23, 0.18), 0 2px 8px rgba(28, 25, 23, 0.08);
+
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "PingFang SC",
+    "Microsoft YaHei", monospace;
+}
+
+:root {
+  /* 进出同路径时的反向缓动(镜像控制点) */
+  --ease-plain-inverse: cubic-bezier(0.68, 0, 0.77, 1);
+  --duration-fast: 120ms;
+  --duration-base: 160ms;
+  --duration-slow: 220ms;
+}
