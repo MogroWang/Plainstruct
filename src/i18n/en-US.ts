@@ -82,6 +82,7 @@ export default {
     moveToRoot: "Move to root",
     moveToFolder: "Select target folder",
     deselect: "Deselect",
+    editHomepage: "Edit homepage",
   },
   editor: {
     emptyTitle: "Start writing",

@@ -35,9 +35,9 @@ function applyMock() {
 }
 
 onMounted(applyMock);
+
 watch(reloadKey, () => {
   if (ipc.inTauri) {
-    // 协议模式下直接刷新 iframe
     frame.value?.contentWindow?.location.reload();
   } else {
     applyMock();
@@ -48,7 +48,6 @@ watch(reloadKey, () => {
 <template>
   <iframe
     ref="frame"
-    :key="reloadKey"
     :src="src"
     class="h-full w-full border-0 bg-white"
     title="site preview"

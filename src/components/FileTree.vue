@@ -3,6 +3,7 @@ import { computed, provide, ref, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TreeNode } from "@/ipc/types";
 import { useSiteStore } from "@/stores/site";
+import { useEditorStore } from "@/stores/editor";
 import { useUiStore } from "@/stores/ui";
 import { ipc } from "@/ipc/ipc";
 import { safeName, stripExt } from "@/lib/paths";
@@ -12,10 +13,22 @@ import PromptModal from "./PromptModal.vue";
 
 const { t } = useI18n();
 const site = useSiteStore();
+const editor = useEditorStore();
 const ui = useUiStore();
 
 const collapsed = ref(new Set<string>());
 provide("treeCollapsed", collapsed);
+
+/** 过滤掉根级 index.md(作为独立首页),其余保持不变 */
+const displayTree = computed(() =>
+  site.tree.filter((n) => !(n.type === "file" && n.name.toLowerCase() === "index.md")),
+);
+
+/** 编辑首页 */
+function editHomepage() {
+  const node = site.findDoc("index.md");
+  if (node) void editor.openDoc(node);
+}
 
 /* ---------- 多选 ---------- */
 
@@ -206,6 +219,9 @@ async function onMove(src: string, destDir: string) {
         {{ t("nav.editor") }} · {{ site.docCount }}
       </span>
       <div class="flex items-center gap-0.5">
+        <button class="btn-icon !h-7 !w-7" :title="t('tree.editHomepage')" @click="editHomepage">
+          <AppIcon name="eye" :size="15" />
+        </button>
         <button class="btn-icon !h-7 !w-7" :title="t('tree.newDoc')" @click="prompt = { mode: 'newDoc', dir: '' }">
           <AppIcon name="filePlus" :size="15" />
         </button>
@@ -248,12 +264,12 @@ async function onMove(src: string, destDir: string) {
         else onExternalDrop(e);
       }"
     >
-      <p v-if="!site.tree.length && !site.treeLoading" class="px-2 py-8 text-center text-[12.5px] leading-relaxed text-ink-3">
+      <p v-if="!displayTree.length && !site.treeLoading" class="px-2 py-8 text-center text-[12.5px] leading-relaxed text-ink-3">
         {{ t("tree.empty") }}
       </p>
       <template v-else>
         <FileTreeNode
-          v-for="node in site.tree"
+          v-for="node in displayTree"
           :key="node.path"
           :node="node"
           :depth="0"

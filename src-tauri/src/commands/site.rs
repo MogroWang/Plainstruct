@@ -135,13 +135,33 @@ pub fn read_site_config(state: State<'_, AppState>) -> Result<SiteConfig, String
     read_site_config_file(&root)
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SiteConfigPatch {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub logo: Option<String>,
+    #[serde(default)]
+    pub theme: Option<SiteThemeRef>,
+}
+
 #[tauri::command]
-pub fn save_site_config(state: State<'_, AppState>, cfg: SiteConfig) -> Result<SiteConfig, String> {
+pub fn save_site_config(state: State<'_, AppState>, patch: SiteConfigPatch) -> Result<SiteConfig, String> {
     let root = state.site_root()?;
-    let mut cfg = cfg;
-    if cfg.description.as_deref() == Some("") {
-        cfg.description = None;
-    }
+    let existing = read_site_config_file(&root)?;
+    let cfg = SiteConfig {
+        name: patch.name.unwrap_or(existing.name),
+        description: match patch.description {
+            Some(d) if d.is_empty() => None,
+            Some(d) => Some(d),
+            None => existing.description,
+        },
+        logo: patch.logo.or(existing.logo),
+        theme: patch.theme.unwrap_or(existing.theme),
+    };
     write_site_config_file(&root, &cfg)?;
     Ok(cfg)
 }

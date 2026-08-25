@@ -64,8 +64,12 @@ function onDragStart(e: DragEvent) {
 
 function onDragOver(e: DragEvent) {
   e.preventDefault();
-  if (!isDir.value) return;
   if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  dragDepth++;
+  dragOver.value = true;
+}
+
+function onDragEnter() {
   dragDepth++;
   dragOver.value = true;
 }
@@ -104,6 +108,7 @@ function onDrop(e: DragEvent) {
       @click="onRowClick"
       @dragstart="onDragStart"
       @dragover="onDragOver"
+      @dragenter="onDragEnter"
       @dragleave="onDragLeave"
       @drop="onDrop"
     >

@@ -82,6 +82,7 @@ export default {
     moveToRoot: "移到根目录",
     moveToFolder: "选择目标文件夹",
     deselect: "取消选择",
+    editHomepage: "编辑首页",
   },
   editor: {
     emptyTitle: "开始写作",

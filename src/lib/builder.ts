@@ -31,10 +31,6 @@ function walkTree(nodes: TreeNode[], fn: (node: TreeNode) => void) {
   }
 }
 
-function naturalCompare(a: string, b: string): number {
-  return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
-}
-
 /** 收集全部 md 文档路径(content/ 相对) */
 export function collectDocPaths(tree: TreeNode[]): string[] {
   const paths: string[] = [];
@@ -72,8 +68,7 @@ function buildMetas(paths: string[], cache: DocsCache): Map<string, DocMeta> {
 }
 
 function buildNav(nodes: TreeNode[], metas: Map<string, DocMeta>): RawNav[] {
-  const dirs: { item: RawNav; order: number }[] = [];
-  const files: { item: RawNav; order: number }[] = [];
+  const result: RawNav[] = [];
   for (const node of nodes) {
     if (node.type === "dir") {
       const indexChild = (node.children ?? []).find(
@@ -84,31 +79,21 @@ function buildNav(nodes: TreeNode[], metas: Map<string, DocMeta>): RawNav[] {
         metas,
       );
       const indexMeta = indexChild ? metas.get(indexChild.path) : undefined;
-      dirs.push({
-        item: {
-          title: indexMeta?.title ?? node.name,
-          htmlPath: indexChild ? mdToHtml(indexChild.path) : undefined,
-          children,
-        },
-        order: indexMeta?.order ?? 0,
+      result.push({
+        title: indexMeta?.title ?? node.name,
+        htmlPath: indexChild ? mdToHtml(indexChild.path) : undefined,
+        children,
       });
     } else if (isMarkdown(node.path)) {
       const meta = metas.get(node.path);
-      files.push({
-        item: {
-          title: meta?.title ?? stripExt(node.name),
-          htmlPath: mdToHtml(node.path),
-          children: [],
-        },
-        order: meta?.order ?? 0,
+      result.push({
+        title: meta?.title ?? stripExt(node.name),
+        htmlPath: mdToHtml(node.path),
+        children: [],
       });
     }
   }
-  const cmp = (a: { item: RawNav; order: number }, b: { item: RawNav; order: number }) =>
-    a.order - b.order || naturalCompare(a.item.title, b.item.title);
-  dirs.sort(cmp);
-  files.sort(cmp);
-  return [...dirs, ...files].map((d) => d.item);
+  return result;
 }
 
 function navForPage(raw: RawNav[], currentHtml: string, outDir: string): NavItem[] {

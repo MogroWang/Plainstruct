@@ -21,7 +21,7 @@ fn content_root(root: &PathBuf) -> PathBuf {
     root.join("content")
 }
 
-/// 递归构建内容树:目录优先,index.md 置顶,其余按名称不区分大小写排序
+/// 递归构建内容树:目录优先,保持文件系统原始顺序
 fn walk(dir: &PathBuf, rel: &str) -> Vec<TreeNode> {
     let mut dirs: Vec<(String, PathBuf)> = Vec::new();
     let mut files: Vec<(String, PathBuf)> = Vec::new();
@@ -40,15 +40,6 @@ fn walk(dir: &PathBuf, rel: &str) -> Vec<TreeNode> {
             files.push((name, entry.path()));
         }
     }
-    let by_name = |a: &(String, PathBuf), b: &(String, PathBuf)| {
-        a.0.to_lowercase().cmp(&b.0.to_lowercase())
-    };
-    dirs.sort_by(by_name);
-    files.sort_by(|a, b| {
-        let a_index = a.0.eq_ignore_ascii_case("index.md");
-        let b_index = b.0.eq_ignore_ascii_case("index.md");
-        b_index.cmp(&a_index).then_with(|| by_name(a, b))
-    });
 
     let mut nodes = Vec::new();
     for (name, path) in dirs {

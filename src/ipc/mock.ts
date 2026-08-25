@@ -203,8 +203,7 @@ function buildTree(root: string): TreeNode[] {
   const prefix = `${root}/content/`;
   const rels = [...files.keys()]
     .filter((p) => p.startsWith(prefix))
-    .map((p) => p.slice(prefix.length))
-    .sort();
+    .map((p) => p.slice(prefix.length));
   const dirSet = new Set<string>();
   for (const rel of rels) {
     const parts = rel.split("/");
@@ -212,7 +211,7 @@ function buildTree(root: string): TreeNode[] {
   }
   const nodes: TreeNode[] = [];
   const dirNodes = new Map<string, TreeNode>();
-  for (const dir of [...dirSet].sort()) {
+  for (const dir of [...dirSet]) {
     const parts = dir.split("/");
     const node: TreeNode = { name: parts[parts.length - 1], path: dir, type: "dir", children: [] };
     dirNodes.set(dir, node);
@@ -240,7 +239,7 @@ export const mock = {
     ensureInit();
     await delay();
     return {
-      version: "0.1.0",
+      version: "0.4.0",
       platform: "browser",
       appDataDir: "(browser)",
       settings,
