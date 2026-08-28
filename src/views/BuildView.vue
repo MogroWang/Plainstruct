@@ -2,32 +2,13 @@
 import { useI18n } from "vue-i18n";
 import { useBuilderStore } from "@/stores/builder";
 import { useSiteStore } from "@/stores/site";
-import { useAppStore } from "@/stores/app";
 import { ipc } from "@/ipc/ipc";
-import { buildIndexUrl } from "@/lib/preview";
 import AppIcon from "@/components/AppIcon.vue";
 import PreviewFrame from "@/components/PreviewFrame.vue";
 
 const { t } = useI18n();
 const builder = useBuilderStore();
 const site = useSiteStore();
-const app = useAppStore();
-
-async function openPreviewWindow() {
-  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-  const existing = await WebviewWindow.getByLabel("site-preview");
-  if (existing) {
-    await existing.setFocus();
-    return;
-  }
-  new WebviewWindow("site-preview", {
-    url: buildIndexUrl(app.platform),
-    title: `${site.config?.name ?? "Plainstruct"} · ${t("build.preview")}`,
-    width: 1120,
-    height: 760,
-    center: true,
-  });
-}
 
 function openOutput() {
   void ipc.openPath(`${site.root}/build`);
@@ -120,7 +101,7 @@ function openOutput() {
           <span class="text-[12.5px] font-semibold text-ink-2">{{ t("build.preview") }}</span>
           <span class="text-[11.5px] text-ink-3">{{ t("build.previewHint") }}</span>
           <div class="ml-auto flex items-center gap-1">
-            <button v-if="ipc.inTauri" class="btn-icon" :title="t('build.openWindow')" @click="openPreviewWindow">
+            <button v-if="ipc.inTauri" class="btn-icon" :title="t('build.openWindow')" @click="builder.openOrRefreshPreviewWindow">
               <AppIcon name="window" :size="15" />
             </button>
             <button class="btn-icon" :title="t('build.openFolder')" @click="openOutput">

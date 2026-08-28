@@ -23,6 +23,48 @@ body.font-serif {
   font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
 }
 
+/* 自定义字体:layout 在 body 上注入 --ps-font-body(font-family 栈) */
+body.font-custom {
+  font-family: var(--ps-font-body, system-ui, sans-serif);
+}
+
+/* ---------- 页面过渡动画(只动内容区,transform/opacity,非线性缓出) ---------- */
+
+@keyframes ps-page-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ps-page-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ps-page-zoom {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ps-anim-fade .ps-main {
+  animation: ps-page-fade 380ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.ps-anim-rise .ps-main {
+  animation: ps-page-rise 480ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.ps-anim-zoom .ps-main {
+  animation: ps-page-zoom 440ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-anim-fade .ps-main,
+  .ps-anim-rise .ps-main,
+  .ps-anim-zoom .ps-main {
+    animation: none;
+  }
+}
+
 :root {
   --ps-bg: #fafaf9;
   --ps-surface: #ffffff;

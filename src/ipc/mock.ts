@@ -300,10 +300,11 @@ export const mock = {
     return "logo.png";
   },
 
-  async removeSiteLogo(): Promise<void> {
+  async removeSiteLogo(): Promise<SiteConfig> {
     const cfg = readJson<SiteConfig>(siteJsonPath(currentRoot!))!;
     delete cfg.logo;
     writeConfig(currentRoot!, cfg);
+    return cfg;
   },
 
   async listTree(): Promise<TreeNode[]> {
@@ -319,16 +320,17 @@ export const mock = {
     files.set(`${currentRoot}/content/${path}`, content);
   },
 
-  async createDoc(dir: string, name: string): Promise<string> {
+  async createDoc(dir: string, name: string, title?: string): Promise<string> {
     let rel = dir ? `${dir}/${name}.md` : `${name}.md`;
     let i = 2;
     while (files.has(`${currentRoot}/content/${rel}`)) {
       rel = dir ? `${dir}/${name}-${i}.md` : `${name}-${i}.md`;
       i++;
     }
+    const docTitle = title?.trim() || name;
     files.set(
       `${currentRoot}/content/${rel}`,
-      `---\ntitle: ${name}\n---\n\n# ${name}\n\n正文。\n`,
+      `---\ntitle: ${docTitle}\n---\n\n# ${docTitle}\n\n正文。\n`,
     );
     return rel;
   },

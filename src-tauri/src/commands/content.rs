@@ -94,7 +94,12 @@ pub fn save_doc(state: State<'_, AppState>, path: String, content: String) -> Re
 }
 
 #[tauri::command]
-pub fn create_doc(state: State<'_, AppState>, dir: String, name: String) -> Result<String, String> {
+pub fn create_doc(
+    state: State<'_, AppState>,
+    dir: String,
+    name: String,
+    title: Option<String>,
+) -> Result<String, String> {
     let root = state.site_root()?;
     let content = content_root(&root);
     let parent = if dir.is_empty() { content.clone() } else { safe_join(&content, &dir)? };
@@ -108,8 +113,10 @@ pub fn create_doc(state: State<'_, AppState>, dir: String, name: String) -> Resu
         target.set_extension("md");
     }
 
-    let title = target.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-    let template = format!("---\ntitle: {title}\n---\n\n正文。\n");
+    let doc_title = title
+        .filter(|t| !t.trim().is_empty())
+        .unwrap_or_else(|| target.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default());
+    let template = format!("---\ntitle: {doc_title}\n---\n\n正文。\n");
     std::fs::write(&target, template).map_err(|e| e.to_string())?;
     Ok(rel_posix(&content, &target))
 }

@@ -34,11 +34,18 @@ function applyMock() {
   doc.close();
 }
 
+/** 重新加载站点(协议响应带 no-store,重设 src 即取最新产物) */
+function reloadSite() {
+  if (!frame.value) return;
+  // iframe 与应用跨源,不能调用 contentWindow.location.reload(),重设 src 触发重新导航
+  frame.value.src = src.value;
+}
+
 onMounted(applyMock);
 
 watch(reloadKey, () => {
   if (ipc.inTauri) {
-    frame.value?.contentWindow?.location.reload();
+    reloadSite();
   } else {
     applyMock();
   }

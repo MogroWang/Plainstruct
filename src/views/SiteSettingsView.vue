@@ -60,7 +60,12 @@ async function chooseLogo() {
 }
 
 async function removeLogo() {
-  await site.removeLogo();
+  try {
+    await site.removeLogo();
+    ui.toast(t("site.logoRemoved"), "success");
+  } catch (e) {
+    ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
+  }
 }
 
 function openFolder() {

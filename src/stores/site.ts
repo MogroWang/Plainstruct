@@ -128,14 +128,13 @@ export const useSiteStore = defineStore("site", {
     },
 
     async removeLogo() {
-      await ipc.removeSiteLogo();
-      this.config = { ...this.config!, logo: undefined };
+      this.config = await ipc.removeSiteLogo();
     },
 
     /* ---------- 内容操作 ---------- */
 
-    async createDoc(dir: string, name: string) {
-      const path = await ipc.createDoc(dir, name);
+    async createDoc(dir: string, name: string, title?: string) {
+      const path = await ipc.createDoc(dir, name, title);
       await this.refreshTree();
       await useEditorStore().openDoc(this.findDoc(path) ?? { name, path, type: "file" });
     },

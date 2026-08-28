@@ -1,9 +1,12 @@
 import { defineStore } from "pinia";
 import type { BuildReport } from "@/ipc/types";
 import { buildSite } from "@/lib/builder";
+import { buildIndexUrl } from "@/lib/preview";
 import { useSiteStore } from "./site";
 import { useThemeStore } from "./theme";
+import { useAppStore } from "./app";
 import { useUiStore } from "./ui";
+import { i18n } from "@/i18n";
 
 interface State {
   building: boolean;
@@ -43,11 +46,55 @@ export const useBuilderStore = defineStore("builder", {
         const bundle = await theme.ensureActiveBundle();
         this.report = await buildSite(site.config, bundle);
         this.previewNonce++;
+        // 独立预览窗口若开着,同步加载最新构建产物
+        void this.refreshPreviewWindow();
       } catch (e) {
         this.error = ipcErr(e);
         ui.toast(this.error, "error");
       } finally {
         this.building = false;
+      }
+    },
+
+    /**
+     * 独立预览窗口:打开;已在则关闭重建以加载最新构建。
+     * (静态站点页面没有脚本,无法远程触发刷新,只能重建窗口)
+     */
+    async openOrRefreshPreviewWindow() {
+      const site = useSiteStore();
+      const app = useAppStore();
+      if (!site.root) return;
+      try {
+        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        const existing = await WebviewWindow.getByLabel("site-preview");
+        if (existing) {
+          await existing.close();
+          // 等 label 释放再重建,避免 "label already exists"
+          for (let i = 0; i < 10; i++) {
+            await new Promise((r) => setTimeout(r, 120));
+            if (!(await WebviewWindow.getByLabel("site-preview"))) break;
+          }
+        }
+        new WebviewWindow("site-preview", {
+          url: buildIndexUrl(app.platform),
+          title: `${site.config?.name ?? "Plainstruct"} · ${i18n.global.t("build.preview")}`,
+          width: 1120,
+          height: 760,
+          center: true,
+        });
+      } catch {
+        /* 非 Tauri 环境忽略 */
+      }
+    },
+
+    /** 构建完成后刷新独立预览窗口(未打开则不动作) */
+    async refreshPreviewWindow() {
+      try {
+        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        const existing = await WebviewWindow.getByLabel("site-preview");
+        if (existing) await this.openOrRefreshPreviewWindow();
+      } catch {
+        /* 非 Tauri 环境忽略 */
       }
     },
 

@@ -24,10 +24,25 @@ const displayTree = computed(() =>
   site.tree.filter((n) => !(n.type === "file" && n.name.toLowerCase() === "index.md")),
 );
 
-/** 编辑首页 */
-function editHomepage() {
-  const node = site.findDoc("index.md");
-  if (node) void editor.openDoc(node);
+/* ---------- 固定首页入口 ---------- */
+
+const homeNode = computed(() => site.findDoc("index.md"));
+const homeActive = computed(
+  () => !!editor.activePath && editor.activePath.toLowerCase() === "index.md",
+);
+
+/** 编辑首页;根目录没有 index.md 时创建一篇 */
+async function openHomepage() {
+  if (homeNode.value) {
+    await editor.openDoc(homeNode.value);
+    return;
+  }
+  try {
+    await site.createDoc("", "index", t("tree.homeDocTitle"));
+    ui.toast(t("tree.homeCreated"), "success");
+  } catch (e) {
+    ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
+  }
 }
 
 /* ---------- 多选模式 ---------- */
@@ -333,9 +348,6 @@ async function onMove(src: string, destDir: string) {
         {{ t("nav.editor") }} · {{ site.docCount }}
       </span>
       <div class="flex items-center gap-0.5">
-        <button class="btn-icon !h-7 !w-7" :title="t('tree.editHomepage')" @click="editHomepage">
-          <AppIcon name="eye" :size="15" />
-        </button>
         <button
           class="select-btn btn-icon !h-7 !w-7"
           :title="t('tree.multiSelect')"
@@ -370,6 +382,25 @@ async function onMove(src: string, destDir: string) {
         <button class="btn-icon !h-6 !w-6" :title="t('tree.deselect')" @click="clearSelection">
           <AppIcon name="x" :size="13" />
         </button>
+      </div>
+    </div>
+
+    <!-- 固定首页入口(不随树滚动,缺失时点击创建) -->
+    <div class="px-2 pb-1 pt-2">
+      <div
+        class="home-row flex h-[30px] cursor-default items-center gap-1 rounded-md px-1 select-none"
+        :class="{ active: homeActive, 'is-missing': !homeNode }"
+        :title="homeNode ? 'index.md' : t('tree.homeCreateHint')"
+        @click="openHomepage"
+      >
+        <span class="w-5 shrink-0" />
+        <AppIcon name="home" :size="15" class="home-row-icon shrink-0" :class="homeActive ? 'text-ink-2' : 'text-ink-3'" />
+        <span class="min-w-0 flex-1 truncate text-[13px]" :class="homeActive ? 'font-medium' : ''">
+          {{ t("tree.home") }}
+        </span>
+        <span v-if="!homeNode" class="shrink-0 pr-1 text-[10.5px] text-ink-3">
+          {{ t("tree.homeMissing") }}
+        </span>
       </div>
     </div>
 
@@ -468,6 +499,21 @@ async function onMove(src: string, destDir: string) {
 </template>
 
 <style scoped>
+/* 固定首页入口:与树行同规格,缺失时整行弱化 */
+.home-row {
+  transition: background-color var(--duration-base) var(--ease-plain);
+}
+.home-row:hover {
+  background: var(--color-surface-2);
+}
+.home-row.active {
+  background: var(--color-surface-3);
+}
+.home-row.is-missing .home-row-icon {
+  color: var(--color-ink-3);
+  opacity: 0.75;
+}
+
 /* 多选模式按钮激活态:实心墨底 */
 .select-btn[aria-pressed="true"] {
   background: var(--color-accent);

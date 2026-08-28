@@ -67,8 +67,8 @@ export const ipc = {
   setSiteLogo(srcPath: string): Promise<string> {
     return inTauri ? invoke<string>("set_site_logo", { srcPath }) : mock.setSiteLogo(srcPath);
   },
-  removeSiteLogo(): Promise<void> {
-    return inTauri ? invoke<void>("remove_site_logo") : mock.removeSiteLogo();
+  removeSiteLogo(): Promise<SiteConfig> {
+    return inTauri ? invoke<SiteConfig>("remove_site_logo") : mock.removeSiteLogo();
   },
 
   /* ---------- 内容 ---------- */
@@ -81,8 +81,10 @@ export const ipc = {
   saveDoc(path: string, content: string): Promise<void> {
     return inTauri ? invoke<void>("save_doc", { path, content }) : mock.saveDoc(path, content);
   },
-  createDoc(dir: string, name: string): Promise<string> {
-    return inTauri ? invoke<string>("create_doc", { dir, name }) : mock.createDoc(dir, name);
+  createDoc(dir: string, name: string, title?: string): Promise<string> {
+    return inTauri
+      ? invoke<string>("create_doc", { dir, name, title: title ?? null })
+      : mock.createDoc(dir, name, title);
   },
   createFolder(parent: string, name: string): Promise<string> {
     return inTauri

@@ -36,6 +36,8 @@
 :root {
   /* 进出同路径时的反向缓动(镜像控制点) */
   --ease-plain-inverse: cubic-bezier(0.68, 0, 0.77, 1);
+  /* 小元素浮现:轻微过冲的弹性缓动(徽标/提示点等) */
+  --ease-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
   --duration-fast: 120ms;
   --duration-base: 160ms;
   --duration-slow: 220ms;

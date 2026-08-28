@@ -13,7 +13,7 @@
   </style>
   <link rel="stylesheet" href="{{asset "assets/style.css"}}">
 </head>
-<body class="font-{{config.bodyFont}}">
+  <body class="font-{{config.bodyFont}}{{#if (eq config.pageTransition "淡入")}} ps-anim-fade{{/if}}{{#if (eq config.pageTransition "淡入上浮")}} ps-anim-rise{{/if}}{{#if (eq config.pageTransition "缩放浮现")}} ps-anim-zoom{{/if}}"{{#if (eq config.bodyFont "custom")}} style="--ps-font-body: {{config.customFont}}"{{/if}}>
   <div class="ps-shell">
     <aside class="ps-sidebar">
       <a class="ps-site" href="{{asset "index.html"}}">

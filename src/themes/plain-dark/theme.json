@@ -25,7 +25,20 @@
       "label": "正文字体",
       "type": "select",
       "default": "system",
-      "options": ["system", "serif"]
+      "options": ["system", "serif", "custom"]
+    },
+    {
+      "key": "customFont",
+      "label": "自定义字体(font-family)",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "pageTransition",
+      "label": "页面过渡动画",
+      "type": "select",
+      "default": "淡入上浮",
+      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现"]
     },
     {
       "key": "showDescription",

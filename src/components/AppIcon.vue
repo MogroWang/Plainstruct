@@ -4,6 +4,7 @@ const props = defineProps<{ name: string; size?: number }>();
 
 const paths: Record<string, string[]> = {
   doc: ["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z", "M14 3v5h5"],
+  home: ["M3 10.5L12 3l9 7.5", "M5.5 8.5V21h13V8.5", "M9.5 21v-6h5v6"],
   file: ["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z", "M14 3v5h5", "M9 13h6", "M9 17h4"],
   sliders: ["M4 7h16", "M4 12h16", "M4 17h16", "M9 5v4", "M15 10v4", "M7 15v4"],
   box: ["M21 8l-9-5-9 5v8l9 5 9-5z", "M3 8l9 5 9-5", "M12 13v8"],

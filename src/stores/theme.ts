@@ -15,6 +15,10 @@ interface State {
   editing: { id: string; name: string; files: Record<string, string> } | null;
   editingActiveFile: string;
   loading: boolean;
+  /** 内置主题的配置被用户改动后置位,主题页据此弹出"复制为新主题"对话框 */
+  suggestCopyForBuiltin: boolean;
+  /** 本次改动周期内用户已选择"继续使用",不再重复提示;配置回到默认后复位 */
+  copyPromptDismissed: boolean;
 }
 
 export const useThemeStore = defineStore("theme", {
@@ -25,6 +29,8 @@ export const useThemeStore = defineStore("theme", {
     editing: null,
     editingActiveFile: "templates/layout.hbs",
     loading: false,
+    suggestCopyForBuiltin: false,
+    copyPromptDismissed: false,
   }),
 
   getters: {
@@ -45,6 +51,18 @@ export const useThemeStore = defineStore("theme", {
         merged[f.key] = values[f.key] ?? f.default ?? "";
       }
       return merged;
+    },
+    /** 当前启用的内置主题是否存在偏离默认值的配置(供"已修改"标识与复制提示) */
+    builtinConfigModified(): boolean {
+      const site = useSiteStore();
+      const ref = site.config?.theme;
+      const meta = this.activeMeta;
+      if (!ref || ref.source !== "builtin" || !meta) return false;
+      const values = ref.config ?? {};
+      return (meta.config ?? []).some((f) => {
+        const v = values[f.key];
+        return v !== undefined && v !== (f.default ?? "");
+      });
     },
   },
 
@@ -83,6 +101,8 @@ export const useThemeStore = defineStore("theme", {
 
     async selectTheme(id: string, source: ThemeSource) {
       const site = useSiteStore();
+      this.suggestCopyForBuiltin = false;
+      this.copyPromptDismissed = false;
       await site.saveConfig({ theme: { id, source, config: {} } });
       await this.loadAll();
     },
@@ -94,6 +114,39 @@ export const useThemeStore = defineStore("theme", {
       const config = { ...site.config.theme.config, [key]: value };
       site.config = { ...site.config, theme: { ...site.config.theme, config } };
       await ipc.saveSiteConfig({ theme: { ...site.config.theme, config } });
+      // 内置主题的配置被改动:置位提示,由主题页弹出"复制为新主题"对话框。
+      // 用户已选"继续使用"的改动周期内不再打扰;配置回到默认后重新武装。
+      if (this.builtinConfigModified) {
+        if (!this.copyPromptDismissed) this.suggestCopyForBuiltin = true;
+      } else {
+        this.copyPromptDismissed = false;
+      }
+    },
+
+    /** 用户在提示对话框中选择"继续使用" */
+    dismissCopySuggestion() {
+      this.suggestCopyForBuiltin = false;
+      this.copyPromptDismissed = true;
+    },
+
+    /** 清空配置覆盖,当前主题恢复为默认值(内置主题即原始状态) */
+    async resetConfigValues() {
+      const site = useSiteStore();
+      if (!site.config) return;
+      this.suggestCopyForBuiltin = false;
+      this.copyPromptDismissed = false;
+      await site.saveConfig({ theme: { ...site.config.theme, config: {} } });
+    },
+
+    /** 切换到刚从内置主题复制出的自定义主题,并保留当前配置值 */
+    async adoptAsCustom(id: string) {
+      const site = useSiteStore();
+      this.suggestCopyForBuiltin = false;
+      this.copyPromptDismissed = false;
+      await site.saveConfig({
+        theme: { id, source: "custom", config: { ...(site.config?.theme.config ?? {}) } },
+      });
+      await this.loadAll();
     },
 
     async startEditing(id: string, source: ThemeSource) {

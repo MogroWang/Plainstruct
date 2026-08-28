@@ -15,6 +15,8 @@ const app = useAppStore();
 const frame = ref<HTMLIFrameElement>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 let ready = false;
+/** 就绪前到达的变更,就绪后立即补一次渲染 */
+let pending = false;
 
 /** 编辑中的草稿(实时含未保存修改),否则当前主题 */
 function currentBundle(): ThemeBundle | null {
@@ -59,8 +61,18 @@ function schedule() {
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
     if (ready) apply();
+    else pending = true;
   }, 300);
 }
+
+/** 立即重渲染(供刷新按钮;忽略防抖) */
+function refresh() {
+  if (timer) clearTimeout(timer);
+  if (ready) apply();
+  else pending = true;
+}
+
+defineExpose({ refresh });
 
 watch(
   [
@@ -78,6 +90,10 @@ onMounted(() => {
   const init = () => {
     ready = true;
     apply();
+    if (pending) {
+      pending = false;
+      apply();
+    }
   };
   if (frame.value?.contentDocument?.readyState === "complete") init();
   else frame.value?.addEventListener("load", init, { once: true });

@@ -180,15 +180,25 @@ pub fn set_site_logo(state: State<'_, AppState>, src_path: String) -> Result<Str
     std::fs::create_dir_all(&assets).map_err(|e| e.to_string())?;
     let stored = format!("logo.{ext}");
     std::fs::copy(&src, assets.join(&stored)).map_err(|e| e.to_string())?;
+    // 替换 logo 时清理旧的(扩展名不同的)文件,避免残留
+    let cfg = read_site_config_file(&root)?;
+    if let Some(old) = cfg.logo {
+        if old != stored {
+            let _ = std::fs::remove_file(assets.join(&old));
+        }
+    }
     Ok(stored)
 }
 
 #[tauri::command]
-pub fn remove_site_logo(state: State<'_, AppState>) -> Result<(), String> {
+pub fn remove_site_logo(state: State<'_, AppState>) -> Result<SiteConfig, String> {
     let root = state.site_root()?;
-    let cfg = read_site_config_file(&root)?;
-    if let Some(logo) = cfg.logo {
+    let mut cfg = read_site_config_file(&root)?;
+    if let Some(logo) = cfg.logo.clone() {
         let _ = std::fs::remove_file(plainstruct_dir(&root).join("assets").join(&logo));
     }
-    Ok(())
+    // 从配置中清除引用,否则重开站点后 logo 会"复活"
+    cfg.logo = None;
+    write_site_config_file(&root, &cfg)?;
+    Ok(cfg)
 }

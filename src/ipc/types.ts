@@ -73,7 +73,7 @@ export interface OutputFile {
 
 export interface CopyItem {
   src: string; // 相对站点根
-  dest: string; // 相对站点根
+  dest: string; // 相对 build/(构建页面的资源引用根)
 }
 
 export interface GithubConfig {

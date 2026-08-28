@@ -182,6 +182,73 @@ async function exportMaker() {
 /* ---------- 站点当前主题引用的补充(编辑中的主题仍被站点使用时) ---------- */
 
 const activeLabel = computed(() => theme.activeMeta?.name ?? "-");
+
+/* ---------- 预览刷新 ---------- */
+
+const themePreviewRef = ref<InstanceType<typeof ThemePreview>>();
+const previewSpinning = ref(false);
+
+function refreshPreview() {
+  themePreviewRef.value?.refresh();
+  previewSpinning.value = false;
+  window.setTimeout(() => {
+    previewSpinning.value = true;
+    window.setTimeout(() => (previewSpinning.value = false), 650);
+  });
+}
+
+/* ---------- 内置主题被修改:提示复制为新主题 ---------- */
+
+const copyAskOpen = ref(false);
+const activeBuiltinName = computed(() => {
+  const meta = theme.activeMeta;
+  return meta && site.config?.theme.source === "builtin" ? meta.name : "";
+});
+
+watch(
+  () => theme.suggestCopyForBuiltin,
+  (v) => {
+    if (v) copyAskOpen.value = true;
+  },
+);
+
+function dismissCopyAsk() {
+  copyAskOpen.value = false;
+  theme.dismissCopySuggestion();
+}
+
+async function confirmCopyAsk() {
+  copyAskOpen.value = false;
+  const base = theme.activeMeta;
+  if (!base) return;
+  const name = await askName(t("theme.newFrom"), base.name);
+  if (!name) return;
+  try {
+    const created = await theme.createFrom("builtin", base.id, name);
+    await theme.adoptAsCustom(created.id);
+  } catch (e) {
+    ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
+  }
+}
+
+/* ---------- 重置主题配置 ---------- */
+
+async function resetConfig() {
+  const meta = theme.activeMeta;
+  if (!meta) return;
+  const ok = await ui.confirmDialog({
+    title: t("theme.resetConfig"),
+    body: t("theme.resetConfigBody", { name: meta.name }),
+    confirmText: t("theme.resetConfirm"),
+  });
+  if (!ok) return;
+  try {
+    await theme.resetConfigValues();
+    ui.toast(t("theme.resetDone"), "success");
+  } catch (e) {
+    ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
+  }
+}
 </script>
 
 <template>
@@ -218,7 +285,16 @@ const activeLabel = computed(() => theme.activeMeta?.name ?? "-");
             >
               <div class="min-w-0 flex-1">
                 <p class="truncate text-[13px] font-medium">{{ meta.name }}</p>
-                <p class="mono truncate text-[11px] text-ink-3">v{{ meta.version }}</p>
+                <p class="mono truncate text-[11px] text-ink-3">
+                  v{{ meta.version }}
+                  <span
+                    v-if="isActive(meta) && theme.builtinConfigModified"
+                    class="modified-tag"
+                    :title="t('theme.modifiedHint')"
+                  >
+                    {{ t("theme.modified") }}
+                  </span>
+                </p>
               </div>
               <span v-if="isActive(meta)" class="badge">{{ t("theme.active") }}</span>
               <div class="item-actions flex items-center gap-0.5">
@@ -286,7 +362,13 @@ const activeLabel = computed(() => theme.activeMeta?.name ?? "-");
           <div class="flex min-w-0 flex-1 flex-col">
             <template v-if="tab === 'config'">
               <div class="min-h-0 flex-1 overflow-y-auto p-6">
-                <p class="field-hint mb-6">{{ t("theme.configHint") }}</p>
+                <div class="mb-6 flex items-center justify-between gap-4">
+                  <p class="field-hint !mt-0">{{ t("theme.configHint") }}</p>
+                  <button class="btn btn-ghost btn-sm shrink-0" @click="resetConfig">
+                    <AppIcon name="restore" :size="14" />
+                    {{ t("theme.resetConfig") }}
+                  </button>
+                </div>
                 <ThemeConfigPanel />
               </div>
             </template>
@@ -328,11 +410,18 @@ const activeLabel = computed(() => theme.activeMeta?.name ?? "-");
 
           <!-- 右:实时预览 -->
           <div class="flex w-[46%] min-w-[320px] shrink-0 flex-col border-l border-line">
-            <div class="flex h-10 shrink-0 items-center border-b border-line bg-surface px-4">
+            <div class="flex h-10 shrink-0 items-center gap-2 border-b border-line bg-surface px-4">
               <span class="text-[12.5px] font-semibold text-ink-2">{{ t("theme.previewDoc") }}</span>
+              <button
+                class="btn-icon ml-auto !h-7 !w-7"
+                :title="t('common.refresh')"
+                @click="refreshPreview"
+              >
+                <AppIcon name="refresh" :size="15" :class="{ 'spin-once': previewSpinning }" />
+              </button>
             </div>
             <div class="min-h-0 flex-1">
-              <ThemePreview />
+              <ThemePreview ref="themePreviewRef" />
             </div>
           </div>
         </div>
@@ -349,6 +438,33 @@ const activeLabel = computed(() => theme.activeMeta?.name ?? "-");
       @confirm="onAskConfirm"
       @cancel="onAskCancel"
     />
+
+    <!-- 内置主题被修改:提示复制为新主题 -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="copyAskOpen" class="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div class="absolute inset-0 bg-[rgba(28,25,23,0.32)]" @click="dismissCopyAsk" />
+          <div class="modal-card panel relative w-full max-w-[380px] shadow-window">
+            <header class="px-6 pb-2 pt-5">
+              <h2 class="text-[16px] font-semibold">{{ t("theme.modifiedTitle") }}</h2>
+            </header>
+            <div class="px-6">
+              <p class="text-[13.5px] leading-relaxed text-ink-2">
+                {{ t("theme.modifiedBody", { name: activeBuiltinName }) }}
+              </p>
+            </div>
+            <footer class="flex justify-end gap-2 border-t border-line px-6 py-4">
+              <button class="btn btn-secondary" @click="dismissCopyAsk">
+                {{ t("theme.modifiedDismiss") }}
+              </button>
+              <button class="btn btn-primary" @click="confirmCopyAsk">
+                {{ t("theme.modifiedConfirm") }}
+              </button>
+            </footer>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -388,6 +504,44 @@ const activeLabel = computed(() => theme.activeMeta?.name ?? "-");
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+/* 内置主题配置偏离默认值的标识:挂在版本行,不与"当前主题"实底徽标抢层级 */
+.modified-tag {
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-surface);
+  color: var(--color-ink-2);
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  animation: badge-pop 340ms var(--ease-pop) both;
+}
+@keyframes badge-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 刷新按钮点击后的单圈旋转 */
+.spin-once {
+  animation: icon-spin 620ms var(--ease-plain);
+}
+@keyframes icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .tab-btn {

@@ -73,9 +73,11 @@ fn copy_recursive(src: &PathBuf, dest: &PathBuf) -> Result<(), String> {
 #[tauri::command]
 pub fn copy_paths(state: State<'_, AppState>, items: Vec<CopyItem>) -> Result<(), String> {
     let root = state.site_root()?;
+    // dest 相对 build/ 落盘:构建出的页面以 build/ 为根引用资源(图片、站点 logo 等)
+    let build = build_root(&root);
     for item in &items {
         let src = safe_join(&root, &item.src)?;
-        let dest = safe_join(&root, &item.dest)?;
+        let dest = safe_join(&build, &item.dest)?;
         if !src.exists() {
             continue; // 资源缺失不阻断构建
         }
