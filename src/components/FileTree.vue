@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide, ref, type Ref } from "vue";
+import { computed, onMounted, onUnmounted, provide, ref, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TreeNode } from "@/ipc/types";
 import { useSiteStore } from "@/stores/site";
@@ -8,7 +8,7 @@ import { useUiStore } from "@/stores/ui";
 import { ipc } from "@/ipc/ipc";
 import { safeName, stripExt } from "@/lib/paths";
 import AppIcon from "./AppIcon.vue";
-import FileTreeNode from "./FileTreeNode.vue";
+import FileTreeNode, { type SelectClick } from "./FileTreeNode.vue";
 import PromptModal from "./PromptModal.vue";
 
 const { t } = useI18n();
@@ -30,22 +30,125 @@ function editHomepage() {
   if (node) void editor.openDoc(node);
 }
 
-/* ---------- 多选 ---------- */
+/* ---------- 多选模式 ---------- */
 
+const selectMode = ref(false);
 const selectedPaths: Ref<Set<string>> = ref(new Set());
 provide("treeSelected", selectedPaths);
 
 const selectedCount = computed(() => selectedPaths.value.size);
+/** Shift 范围选择的起点 */
+const anchor = ref<string | null>(null);
 
-function toggleSelect(path: string) {
-  const next = new Set(selectedPaths.value);
-  if (next.has(path)) {
-    next.delete(path);
-  } else {
-    next.add(path);
+/** 树的扁平显示顺序(范围选择用) */
+function flattenPaths(nodes: TreeNode[]): string[] {
+  const out: string[] = [];
+  const walk = (list: TreeNode[]) => {
+    for (const n of list) {
+      out.push(n.path);
+      if (n.children) walk(n.children);
+    }
+  };
+  walk(nodes);
+  return out;
+}
+
+function setSelectMode(on: boolean) {
+  selectMode.value = on;
+  anchor.value = null;
+  if (!on) selectedPaths.value = new Set();
+}
+
+/** 多选模式下的行点击:普通 = 单选,Ctrl/⌘ = 切换,Shift = 从锚点范围选择 */
+function handleSelectClick(click: SelectClick) {
+  if (click.shift && anchor.value) {
+    const flat = flattenPaths(displayTree.value);
+    const a = flat.indexOf(anchor.value);
+    const b = flat.indexOf(click.path);
+    if (a >= 0 && b >= 0) {
+      const [lo, hi] = a < b ? [a, b] : [b, a];
+      selectedPaths.value = new Set(flat.slice(lo, hi + 1));
+      return;
+    }
   }
+  if (click.ctrl) {
+    anchor.value = click.path;
+    const next = new Set(selectedPaths.value);
+    if (next.has(click.path)) next.delete(click.path);
+    else next.add(click.path);
+    selectedPaths.value = next;
+    return;
+  }
+  anchor.value = click.path;
+  selectedPaths.value = new Set([click.path]);
+}
+
+/* ---------- 框选(空白处按下拖动) ---------- */
+
+const scrollEl = ref<HTMLElement | null>(null);
+/** 选框矩形,内容坐标 */
+const band = ref<{ x: number; y: number; w: number; h: number } | null>(null);
+let bandStart: { x: number; y: number } | null = null;
+let bandPointerId = -1;
+
+function onBandDown(e: PointerEvent) {
+  if (!selectMode.value || e.button !== 0) return;
+  if ((e.target as HTMLElement | null)?.closest(".tree-row, button")) return;
+  bandStart = { x: e.clientX, y: e.clientY };
+  bandPointerId = e.pointerId;
+  scrollEl.value?.setPointerCapture(e.pointerId);
+}
+
+function onBandMove(e: PointerEvent) {
+  if (!bandStart || e.pointerId !== bandPointerId || !scrollEl.value) return;
+  // 位移阈值:越过前视为原地点击,不进入框选
+  if (!band.value && Math.abs(e.clientX - bandStart.x) < 4 && Math.abs(e.clientY - bandStart.y) < 4) return;
+  const el = scrollEl.value;
+  const rect = el.getBoundingClientRect();
+  const left = Math.min(bandStart.x, e.clientX);
+  const top = Math.min(bandStart.y, e.clientY);
+  const right = Math.max(bandStart.x, e.clientX);
+  const bottom = Math.max(bandStart.y, e.clientY);
+  band.value = {
+    x: left - rect.left + el.scrollLeft,
+    y: top - rect.top + el.scrollTop,
+    w: right - left,
+    h: bottom - top,
+  };
+  // 与行矩形相交即选中
+  const next = new Set<string>();
+  el.querySelectorAll<HTMLElement>(".tree-row").forEach((row) => {
+    const r = row.getBoundingClientRect();
+    if (r.left < right && r.right > left && r.top < bottom && r.bottom > top) {
+      const p = row.dataset.path;
+      if (p) next.add(p);
+    }
+  });
   selectedPaths.value = next;
 }
+
+function onBandUp(e: PointerEvent) {
+  if (e.pointerId !== bandPointerId) return;
+  const banded = band.value !== null;
+  bandStart = null;
+  bandPointerId = -1;
+  band.value = null;
+  // 空白处原地点击(未成框) = 清除选择
+  if (!banded) selectedPaths.value = new Set();
+}
+
+function onBandCancel(e: PointerEvent) {
+  if (e.pointerId !== bandPointerId) return;
+  bandStart = null;
+  bandPointerId = -1;
+  band.value = null;
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === "Escape" && selectMode.value) setSelectMode(false);
+}
+onMounted(() => window.addEventListener("keydown", onKeydown));
+onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 
 function clearSelection() {
   selectedPaths.value = new Set();
@@ -87,10 +190,6 @@ async function batchMoveTo(targetDir: string) {
   }
   clearSelection();
   showMoveDialog.value = false;
-}
-
-async function batchMoveToRoot() {
-  await batchMoveTo("");
 }
 
 /* ---------- Prompt ---------- */
@@ -237,6 +336,14 @@ async function onMove(src: string, destDir: string) {
         <button class="btn-icon !h-7 !w-7" :title="t('tree.editHomepage')" @click="editHomepage">
           <AppIcon name="eye" :size="15" />
         </button>
+        <button
+          class="select-btn btn-icon !h-7 !w-7"
+          :title="t('tree.multiSelect')"
+          :aria-pressed="selectMode"
+          @click="setSelectMode(!selectMode)"
+        >
+          <AppIcon name="checkSquare" :size="15" />
+        </button>
         <button class="btn-icon !h-7 !w-7" :title="t('tree.newDoc')" @click="prompt = { mode: 'newDoc', dir: '' }">
           <AppIcon name="filePlus" :size="15" />
         </button>
@@ -254,15 +361,11 @@ async function onMove(src: string, destDir: string) {
       v-if="selectedCount > 0"
       class="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2"
     >
-      <span class="text-[12px] font-medium text-ink-2">{{ t("tree.selected", { n: selectedCount }) }}</span>
+      <span class="shrink-0 whitespace-nowrap text-[12px] font-medium text-ink-2">{{ t("tree.selected", { n: selectedCount }) }}</span>
       <div class="ml-auto flex items-center gap-1">
         <button class="btn btn-sm btn-secondary text-[11.5px]" @click="showMoveDialog = true">
           <AppIcon name="folder" :size="13" />
           {{ t("tree.moveTo") }}
-        </button>
-        <button class="btn btn-sm btn-secondary text-[11.5px]" @click="batchMoveToRoot">
-          <AppIcon name="arrowRight" :size="13" />
-          {{ t("tree.moveToRoot") }}
         </button>
         <button class="btn-icon !h-6 !w-6" :title="t('tree.deselect')" @click="clearSelection">
           <AppIcon name="x" :size="13" />
@@ -271,14 +374,26 @@ async function onMove(src: string, destDir: string) {
     </div>
 
     <div
-      class="min-h-0 flex-1 overflow-y-auto px-2 pb-4"
+      ref="scrollEl"
+      class="relative min-h-0 flex-1 overflow-y-auto px-2 pb-4"
+      :class="{ 'select-none': selectMode }"
       @dragover.prevent
       @drop.prevent="(e: DragEvent) => {
         const src = e.dataTransfer?.getData('text/plain');
         if (src) onMove(src, '');
         else onExternalDrop(e);
       }"
+      @pointerdown="onBandDown"
+      @pointermove="onBandMove"
+      @pointerup="onBandUp"
+      @pointercancel="onBandCancel"
     >
+      <!-- 框选矩形 -->
+      <div
+        v-if="band"
+        class="band"
+        :style="{ left: band.x + 'px', top: band.y + 'px', width: band.w + 'px', height: band.h + 'px' }"
+      />
       <p v-if="!displayTree.length && !site.treeLoading" class="px-2 py-8 text-center text-[12.5px] leading-relaxed text-ink-3">
         {{ t("tree.empty") }}
       </p>
@@ -289,11 +404,12 @@ async function onMove(src: string, destDir: string) {
           :node="node"
           :depth="0"
           :selected-paths="selectedPaths"
+          :select-mode="selectMode"
           @new-doc-in="(dir: string) => (prompt = { mode: 'newDoc', dir })"
           @rename="(n: TreeNode) => (prompt = { mode: 'rename', node: n })"
           @remove="onRemove"
           @move="onMove"
-          @toggle-select="toggleSelect"
+          @select-click="handleSelectClick"
           @import-to="(dir: string) => onImport(dir)"
         />
       </template>
@@ -350,3 +466,24 @@ async function onMove(src: string, destDir: string) {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+/* 多选模式按钮激活态:实心墨底 */
+.select-btn[aria-pressed="true"] {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+.select-btn[aria-pressed="true"]:hover {
+  background: var(--color-accent-strong);
+}
+
+/* 框选矩形 */
+.band {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+  border: 1px solid rgba(28, 25, 23, 0.4);
+  background: rgba(28, 25, 23, 0.06);
+  border-radius: 3px;
+}
+</style>

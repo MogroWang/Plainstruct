@@ -82,6 +82,7 @@ export default {
     moveToRoot: "Move to root",
     moveToFolder: "Select target folder",
     deselect: "Deselect",
+    multiSelect: "Multi-select",
     editHomepage: "Edit homepage",
   },
   editor: {

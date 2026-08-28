@@ -28,6 +28,8 @@ const paths: Record<string, string[]> = {
   x: ["M6 6l12 12", "M18 6L6 18"],
   search: ["M11 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12z", "M20 20l-4.2-4.2"],
   check: ["M5 13l4 4L19 7"],
+  square: ["M4 5h16v14H4z"],
+  checkSquare: ["M4 5h16v14H4z", "M8.5 12.5l2.5 2.5 5-5"],
   alert: ["M12 4L2.8 19.5h18.4z", "M12 10v4", "M12 17.2h.01"],
   trash: ["M4 7h16", "M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2", "M6 7l1 13h10l1-13"],
   pencil: ["M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z", "M13.5 6.5l3 3"],
