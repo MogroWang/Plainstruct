@@ -398,6 +398,41 @@ a.ps-nav-dir:hover {
   color: var(--ps-ink-3);
 }
 
+/* ---------- 主页目录 ---------- */
+
+.ps-home-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ps-home-list .ps-home-list {
+  margin: 4px 0 12px;
+  padding-left: 16px;
+  border-left: 1px solid var(--ps-line);
+}
+
+.ps-home-item {
+  margin: 0 0 6px;
+}
+
+.ps-home-link {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ps-ink);
+  text-decoration: none;
+}
+
+a.ps-home-link:hover {
+  color: var(--ps-accent);
+}
+
+.ps-home-list .ps-home-list .ps-home-link {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--ps-ink-2);
+}
+
 /* ---------- 响应式 ---------- */
 
 @media (max-width: 900px) {

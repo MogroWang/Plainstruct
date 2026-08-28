@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{#if page.title}}{{page.title}} · {{/if}}{{site.name}}</title>
+  <title>{{#if page.title}}{{#unless (eq page.title site.name)}}{{page.title}} · {{/unless}}{{/if}}{{site.name}}</title>
   {{#if site.description}}<meta name="description" content="{{site.description}}">{{/if}}
   <style>
     :root {

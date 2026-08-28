@@ -201,14 +201,29 @@ async function onExternalDrop(e: DragEvent) {
   }
 }
 
-/* ---------- 移动(拖拽) ---------- */
+/* ---------- 移动(拖拽/批量) ---------- */
+
+/** 拖动项属于多选集合时,全部选中项一起移动(排除目标自身及其祖先) */
+function expandDragSrcs(src: string, destDir: string): string[] {
+  if (!selectedPaths.value.has(src) || selectedPaths.value.size <= 1) return [src];
+  return [...selectedPaths.value].filter(
+    (s) => s !== destDir && !(destDir && destDir.startsWith(s + "/")),
+  );
+}
 
 async function onMove(src: string, destDir: string) {
-  try {
-    await site.moveItem(src, destDir);
-  } catch (e) {
-    ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
+  let moved = 0;
+  for (const s of expandDragSrcs(src, destDir)) {
+    try {
+      await site.moveItem(s, destDir);
+      moved++;
+    } catch (e) {
+      ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
+    }
   }
+  // 多项移动时统一提示;单项保持安静
+  if (moved > 1) ui.toast(t("tree.importDone", { n: moved }), "success");
+  if (moved > 0) clearSelection();
 }
 </script>
 

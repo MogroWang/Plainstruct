@@ -25,7 +25,7 @@ const emit = defineEmits<{
 const editor = useEditorStore();
 const collapsed = inject<Ref<Set<string>>>("treeCollapsed", ref(new Set()));
 const dragOver = ref(false);
-let dragDepth = 0;
+let expandTimer: number | undefined;
 
 const isDir = computed(() => props.node.type === "dir");
 const label = computed(() => (isDir.value ? props.node.name : props.node.name.replace(/\.md$/i, "")));
@@ -65,27 +65,32 @@ function onDragStart(e: DragEvent) {
 function onDragOver(e: DragEvent) {
   e.preventDefault();
   if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-  dragDepth++;
   dragOver.value = true;
+  // 悬停在折叠文件夹上稍候自动展开,便于继续拖入更深层级
+  if (expandTimer === undefined) {
+    expandTimer = window.setTimeout(() => {
+      expandTimer = undefined;
+      if (isDir.value && isCollapsed.value) {
+        const next = new Set(collapsed.value);
+        next.delete(props.node.path);
+        collapsed.value = next;
+      }
+    }, 600);
+  }
 }
 
-function onDragEnter() {
-  dragDepth++;
-  dragOver.value = true;
-}
-
-function onDragLeave() {
-  if (--dragDepth <= 0) {
-    dragOver.value = false;
-    dragDepth = 0;
+function endDrag() {
+  dragOver.value = false;
+  if (expandTimer !== undefined) {
+    window.clearTimeout(expandTimer);
+    expandTimer = undefined;
   }
 }
 
 function onDrop(e: DragEvent) {
   e.preventDefault();
   e.stopPropagation();
-  dragOver.value = false;
-  dragDepth = 0;
+  endDrag();
   const src = e.dataTransfer?.getData("text/plain");
   if (!src) return;
   const targetDir = isDir.value ? props.node.path : dirname(props.node.path);
@@ -108,8 +113,7 @@ function onDrop(e: DragEvent) {
       @click="onRowClick"
       @dragstart="onDragStart"
       @dragover="onDragOver"
-      @dragenter="onDragEnter"
-      @dragleave="onDragLeave"
+      @dragleave="endDrag"
       @drop="onDrop"
     >
       <!-- 选中复选框 -->

@@ -84,7 +84,8 @@ function buildNav(nodes: TreeNode[], metas: Map<string, DocMeta>): RawNav[] {
         htmlPath: indexChild ? mdToHtml(indexChild.path) : undefined,
         children,
       });
-    } else if (isMarkdown(node.path)) {
+    } else if (isMarkdown(node.path) && node.path.toLowerCase() !== "index.md") {
+      // 根级 index.md 即站点首页(站点名入口),不重复出现在导航
       const meta = metas.get(node.path);
       result.push({
         title: meta?.title ?? stripExt(node.name),
@@ -103,6 +104,26 @@ function navForPage(raw: RawNav[], currentHtml: string, outDir: string): NavItem
     current: item.htmlPath === currentHtml,
     children: item.children.length ? navForPage(item.children, currentHtml, outDir) : undefined,
   }));
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+/** 自动主页的目录 HTML -- 站点介绍页正文(无根级 index.md 时) */
+function homeTocHtml(raw: RawNav[]): string {
+  const items = (list: RawNav[]): string =>
+    list.length
+      ? `<ul class="ps-home-list">${list
+          .map((item) => {
+            const head = item.htmlPath
+              ? `<a class="ps-home-link" href="${encodePath(relPosix("", item.htmlPath))}">${escapeHtml(item.title)}</a>`
+              : `<span class="ps-home-link">${escapeHtml(item.title)}</span>`;
+            return `<li class="ps-home-item">${head}${items(item.children)}</li>`;
+          })
+          .join("")}</ul>`
+      : "";
+  return items(raw);
 }
 
 function flattenNav(raw: RawNav[]): RawNav[] {
@@ -272,6 +293,19 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
       warnings,
     );
     outputs.push({ path: mdToHtml(doc.path), content: html });
+  }
+
+  // 主页:根级 index.md 即首页;缺失时自动生成文档介绍页,保证 index.html 始终存在
+  if (!mdPaths.some((p) => p.toLowerCase() === "index.md")) {
+    const home: DocMeta = {
+      path: "index.md",
+      title: site.name,
+      description: site.description,
+      order: 0,
+      body: homeTocHtml(navRaw),
+    };
+    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, home, warnings);
+    outputs.push({ path: "index.html", content: html });
   }
 
   await ipc.clearBuild();
