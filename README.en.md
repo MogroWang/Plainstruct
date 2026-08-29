@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/logo-full-dark.svg">
+    <img src="public/logo-full.svg" alt="Plainstruct" width="420">
+  </picture>
+</p>
+
 # Plainstruct
 
 A local-first static wiki site creator. Write Markdown in folders, build with one click, preview locally, and publish to GitHub Pages - no terminal, no backend.
@@ -6,11 +13,11 @@ A local-first static wiki site creator. Write Markdown in folders, build with on
 
 ## Features
 
-- **Content management** - tree management of folders and Markdown documents: create (with custom title) / rename / move (drag & drop) / delete (to system trash) / import; multi-select via Shift range and Ctrl/⌘ toggle, batch move by drag & drop, folders auto-expand on hover
+- **Content management** - tree management of folders and Markdown documents: create (with custom title) / rename / move (drag & drop) / delete (to system trash) / import; multi-select via Shift range and Ctrl/⌘ toggle, batch move by drag & drop, folders auto-expand on hover; drag & drop shows an insertion indicator (row edge = move next to that row's directory, folder middle = move into the folder); dedicated right-click menus for the file tree (new / import / rename / delete) and the editor & inputs (cut / copy / paste / select all)
 - **Live editing** - CodeMirror 6 editor side-by-side with rendered preview, proportional scroll sync, autosave; a formatting toolbar for headings, bold, italic, strikethrough, quote, lists, link, image, table and code blocks, with keyboard shortcuts and automatic list continuation; the preview shares the exact rendering pipeline with the build - what you see is what you ship
 - **Site settings** - name, description and logo
-- **One-click build** - output is plain static HTML; every internal link and asset is **relative**, so the site works on GitHub Pages project subpaths, custom domains, or opened from disk; a full link check runs at build time and broken links are listed in the report
-- **Theme system** - built-in light & dark themes; visual settings panel (color / number / select / toggle); theme editor with code editing and live preview; themes import & export as ZIP
+- **One-click build** - output is plain static HTML; every internal link and asset is **relative**, so the site works on GitHub Pages project subpaths, custom domains, or opened from disk; folders without an index.md automatically get a generated directory listing page; a full link check runs at build time and broken links are listed in the report; the standalone preview window remembers its position & size and reloads in place on rebuild
+- **Theme system** - built-in light & dark themes, mobile-friendly (document list collapses into a drawer with a top bar showing the site logo, name and description), optional "Created with Plainstruct" footer credit; visual settings panel (color / number / select / toggle); theme editor with code editing and live preview; themes import & export as ZIP
 - **GitHub Pages publishing** - pushes the build as a **single atomic commit** via the GitHub API using a personal access token; creates repo / branch / Pages automatically - no Git required
 - **Update check** - one-click check in Settings against the latest GitHub Release, showing the new version, release notes and publish time
 - **Local-first** - all data lives inside the folder you choose; backup = copy; no backend, no telemetry
@@ -54,7 +61,7 @@ Create one at [GitHub Settings -> Developer settings -> Personal access tokens](
 └── build/              # build output (safe to delete & rebuild)
 ```
 
-**Path mapping**: `index.md -> index.html`, `foo.md -> foo.html`, `foo/index.md -> foo/index.html`. Link between documents with plain relative `.md` paths - they are rewritten to `.html` at build time.
+**Path mapping**: `index.md -> index.html`, `foo.md -> foo.html`, `foo/index.md -> foo/index.html`. Link between documents with plain relative `.md` paths - they are rewritten to `.html` at build time. Folders without an `index.md` get an auto-generated directory listing page (`<folder>/index.html`) at build time, listing all documents and subfolders; folder titles in the navigation and directory pages are clickable links.
 
 **Front-matter** fields: `title`, `order` (ascending), `description`.
 
