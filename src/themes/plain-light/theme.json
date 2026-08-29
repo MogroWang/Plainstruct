@@ -31,7 +31,8 @@
       "key": "customFont",
       "label": "自定义字体(font-family)",
       "type": "text",
-      "default": ""
+      "default": "",
+      "visibleIf": { "key": "bodyFont", "equals": "custom" }
     },
     {
       "key": "pageTransition",

@@ -285,8 +285,9 @@ async function resetConfig() {
             >
               <div class="min-w-0 flex-1">
                 <p class="truncate text-[13px] font-medium">{{ meta.name }}</p>
-                <p class="mono truncate text-[11px] text-ink-3">
-                  v{{ meta.version }}
+                <!-- 版本行:标签放在 truncate 之外,避免被省略号截断 -->
+                <div class="flex min-w-0 items-center">
+                  <p class="mono min-w-0 truncate text-[11px] text-ink-3">v{{ meta.version }}</p>
                   <span
                     v-if="isActive(meta) && theme.builtinConfigModified"
                     class="modified-tag"
@@ -294,7 +295,7 @@ async function resetConfig() {
                   >
                     {{ t("theme.modified") }}
                   </span>
-                </p>
+                </div>
               </div>
               <span v-if="isActive(meta)" class="badge">{{ t("theme.active") }}</span>
               <div class="item-actions flex items-center gap-0.5">
@@ -506,8 +507,9 @@ async function resetConfig() {
   letter-spacing: 0.02em;
 }
 
-/* 内置主题配置偏离默认值的标识:挂在版本行,不与"当前主题"实底徽标抢层级 */
+/* 内置主题配置偏离默认值的标识:独立 flex 项,不被版本号截断,也不与"当前主题"实底徽标抢层级 */
 .modified-tag {
+  flex-shrink: 0;
   margin-left: 4px;
   padding: 1px 5px;
   border-radius: 4px;
@@ -518,6 +520,7 @@ async function resetConfig() {
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  white-space: nowrap;
   animation: badge-pop 340ms var(--ease-pop) both;
 }
 @keyframes badge-pop {

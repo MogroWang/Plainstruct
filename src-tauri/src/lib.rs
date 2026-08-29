@@ -107,6 +107,7 @@ pub fn run() {
             commands::get_bootstrap,
             commands::save_settings,
             commands::log_frontend,
+            commands::check_update,
             // 站点
             commands::create_site,
             commands::open_site,

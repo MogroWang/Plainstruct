@@ -10,6 +10,7 @@ import type {
   SyncResult,
   ThemeMeta,
   TreeNode,
+  UpdateInfo,
   VerifyResult,
 } from "./types";
 import { Events, listen } from "./events";
@@ -39,6 +40,9 @@ export const ipc = {
   },
   logFrontend(msg: string): Promise<void> {
     return inTauri ? invoke<void>("log_frontend", { msg }) : mock.logFrontend(msg);
+  },
+  checkUpdate(): Promise<UpdateInfo> {
+    return inTauri ? invoke<UpdateInfo>("check_update") : mock.checkUpdate();
   },
 
   /* ---------- 站点 ---------- */

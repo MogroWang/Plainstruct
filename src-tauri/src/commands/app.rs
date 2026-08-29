@@ -112,3 +112,70 @@ pub fn save_settings(state: State<'_, AppState>, patch: Value) -> Result<Value, 
 pub fn log_frontend(msg: String) {
     println!("[frontend] {msg}");
 }
+
+/* ---------- 检查更新:对比 GitHub 最新 Release 与当前版本 ---------- */
+
+const RELEASES_API: &str = "https://api.github.com/repos/MogroWang/Plainstruct/releases/latest";
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateInfo {
+    pub current_version: String,
+    pub latest_version: String,
+    pub has_update: bool,
+    pub release_url: String,
+    pub release_notes: String,
+    pub published_at: String,
+}
+
+/// "v1.2.3" / "1.2.3" -> (1, 2, 3)
+fn parse_semver(s: &str) -> Option<(u64, u64, u64)> {
+    let core = s.trim().trim_start_matches(['v', 'V']);
+    let core = core.split(['-', '+']).next()?;
+    let mut it = core.split('.');
+    Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?, it.next()?.parse().ok()?))
+}
+
+fn is_newer(latest: &str, current: &str) -> bool {
+    match (parse_semver(latest), parse_semver(current)) {
+        (Some(a), Some(b)) => a > b,
+        // 任一侧无法按 semver 解析时退化为字符串比较
+        _ => latest.trim() != current.trim(),
+    }
+}
+
+#[tauri::command]
+pub async fn check_update() -> Result<UpdateInfo, String> {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    let client = reqwest::Client::builder()
+        .user_agent(concat!("plainstruct/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .map_err(|e| format!("网络客户端创建失败: {e}"))?;
+    let resp = client
+        .get(RELEASES_API)
+        .header("Accept", "application/vnd.github+json")
+        .timeout(std::time::Duration::from_secs(15))
+        .send()
+        .await
+        .map_err(|e| format!("网络错误: {e}"))?;
+    let status = resp.status();
+    if status == reqwest::StatusCode::NOT_FOUND {
+        return Err("仓库尚未发布任何 Release。".into());
+    }
+    if !status.is_success() {
+        return Err(format!("GitHub API 返回 {status}"));
+    }
+    let json: Value = resp.json().await.map_err(|e| format!("解析响应失败: {e}"))?;
+    let tag = json["tag_name"].as_str().unwrap_or("").trim().to_string();
+    if tag.is_empty() {
+        return Err("Release 数据缺少版本号。".into());
+    }
+    Ok(UpdateInfo {
+        has_update: is_newer(&tag, &current),
+        latest_version: tag.trim_start_matches(['v', 'V']).to_string(),
+        release_url: json["html_url"].as_str().unwrap_or("").to_string(),
+        release_notes: json["body"].as_str().unwrap_or("").trim().to_string(),
+        published_at: json["published_at"].as_str().unwrap_or("").to_string(),
+        current_version: current,
+    })
+}

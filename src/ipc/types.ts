@@ -23,6 +23,15 @@ export interface Bootstrap {
   recentSites: RecentSite[];
 }
 
+export interface UpdateInfo {
+  currentVersion: string;
+  latestVersion: string;
+  hasUpdate: boolean;
+  releaseUrl: string;
+  releaseNotes: string;
+  publishedAt: string;
+}
+
 export interface SiteThemeRef {
   id: string;
   source: ThemeSource;
@@ -54,6 +63,8 @@ export interface ThemeField {
   max?: number;
   step?: number;
   options?: string[];
+  /** 可选:仅当另一字段等于指定值时显示(如自定义字体依赖 bodyFont=custom) */
+  visibleIf?: { key: string; equals: string | number | boolean };
 }
 
 export interface ThemeMeta {

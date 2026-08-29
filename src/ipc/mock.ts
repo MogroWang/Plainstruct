@@ -11,6 +11,7 @@ import type {
   SyncResult,
   ThemeMeta,
   TreeNode,
+  UpdateInfo,
   VerifyResult,
 } from "./types";
 import { getBuiltinTheme } from "@/themes/manifest";
@@ -239,7 +240,7 @@ export const mock = {
     ensureInit();
     await delay();
     return {
-      version: "0.6.0",
+      version: "1.0.0",
       platform: "browser",
       appDataDir: "(browser)",
       settings,
@@ -526,6 +527,19 @@ export const mock = {
   },
 
   async logFrontend(_msg: string): Promise<void> {},
+
+  async checkUpdate(): Promise<UpdateInfo> {
+    await delay(400);
+    const version = "1.0.0";
+    return {
+      currentVersion: version,
+      latestVersion: version,
+      hasUpdate: false,
+      releaseUrl: "https://github.com/MogroWang/Plainstruct/releases/latest",
+      releaseNotes: "",
+      publishedAt: "",
+    };
+  },
 };
 
 /** mock 模式下的文件选择:返回虚拟路径 */
