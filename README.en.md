@@ -2,16 +2,17 @@
 
 A local-first static wiki site creator. Write Markdown in folders, build with one click, preview locally, and publish to GitHub Pages - no terminal, no backend.
 
-[中文](./README.md)
+[中文](./README.md) · [Changelog](./changelog.md)
 
 ## Features
 
-- **Content management** - tree management of folders and Markdown documents: create / rename / move (drag & drop) / delete (to system trash) / import
-- **Live editing** - CodeMirror 6 editor side-by-side with rendered preview, proportional scroll sync, autosave; the preview shares the exact rendering pipeline with the build - what you see is what you ship
+- **Content management** - tree management of folders and Markdown documents: create (with custom title) / rename / move (drag & drop) / delete (to system trash) / import; multi-select via Shift range and Ctrl/⌘ toggle, batch move by drag & drop, folders auto-expand on hover
+- **Live editing** - CodeMirror 6 editor side-by-side with rendered preview, proportional scroll sync, autosave; a formatting toolbar for headings, bold, italic, strikethrough, quote, lists, link, image, table and code blocks, with keyboard shortcuts and automatic list continuation; the preview shares the exact rendering pipeline with the build - what you see is what you ship
 - **Site settings** - name, description and logo
 - **One-click build** - output is plain static HTML; every internal link and asset is **relative**, so the site works on GitHub Pages project subpaths, custom domains, or opened from disk; a full link check runs at build time and broken links are listed in the report
 - **Theme system** - built-in light & dark themes; visual settings panel (color / number / select / toggle); theme editor with code editing and live preview; themes import & export as ZIP
 - **GitHub Pages publishing** - pushes the build as a **single atomic commit** via the GitHub API using a personal access token; creates repo / branch / Pages automatically - no Git required
+- **Update check** - one-click check in Settings against the latest GitHub Release, showing the new version, release notes and publish time
 - **Local-first** - all data lives inside the folder you choose; backup = copy; no backend, no telemetry
 - **Bilingual UI** - switch between Chinese and English from the title bar
 
