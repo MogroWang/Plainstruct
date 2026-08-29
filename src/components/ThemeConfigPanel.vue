@@ -28,7 +28,8 @@ function isVisible(field: ThemeField): boolean {
 <template>
   <div class="flex flex-col gap-5">
     <div v-for="field in theme.activeMeta?.config ?? []" :key="field.key" v-show="isVisible(field)" class="flex flex-col">
-      <label class="field-label">{{ field.label }}</label>
+      <!-- 开关自带行内标签,不再重复渲染标题 -->
+      <label v-if="field.type !== 'boolean'" class="field-label">{{ field.label }}</label>
 
       <!-- 颜色 -->
       <div v-if="field.type === 'color'" class="flex items-center gap-2">

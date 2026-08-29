@@ -1,7 +1,7 @@
 {
   "id": "plain-light",
   "name": "素构 · 浅色",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "MogroWang Studio",
   "description": "默认浅色主题:灰白纸感,墨色强调,系统字体。",
   "config": [
@@ -44,6 +44,12 @@
     {
       "key": "showDescription",
       "label": "显示站点描述",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "key": "showFooterCredit",
+      "label": "在底部显示由 Plainstruct 创建",
       "type": "boolean",
       "default": true
     }

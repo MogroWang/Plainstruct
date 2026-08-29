@@ -162,6 +162,11 @@ pub fn move_item(state: State<'_, AppState>, src: String, dest_dir: String) -> R
         return Err("invalid-move".into());
     }
 
+    // 源已位于目标目录时为无操作:否则 unique_path 会因源文件自身占用目标名而生成 "-2" 副本名
+    if src_full.parent() == Some(dest_parent.as_path()) {
+        return Ok(src);
+    }
+
     std::fs::create_dir_all(&dest_parent).map_err(|e| e.to_string())?;
     let name = src_full.file_name().ok_or("非法路径")?.to_os_string();
     let target = unique_path(&dest_parent.join(name));

@@ -11,6 +11,12 @@ export interface SelectClick {
   shift: boolean;
 }
 
+/** 拖拽落点指示:before/after = 移到该行所在目录,into = 移入该文件夹,root-end = 移到根目录 */
+export type DropMark =
+  | { kind: "before" | "after" | "into"; path: string }
+  | { kind: "root-end" }
+  | null;
+
 defineOptions({ name: "FileTreeNode" });
 
 const props = defineProps<{
@@ -31,8 +37,11 @@ const emit = defineEmits<{
 
 const editor = useEditorStore();
 const collapsed = inject<Ref<Set<string>>>("treeCollapsed", ref(new Set()));
+const dropMark = inject<Ref<DropMark>>("treeDropMark", ref(null));
 const dragOver = ref(false);
 const dragging = ref(false);
+/** 当前悬停区域:行上/下边缘 = 移到父目录,文件夹中部 = 移入 */
+const dropPos = ref<"before" | "after" | "into">("into");
 let expandTimer: number | undefined;
 
 const isDir = computed(() => props.node.type === "dir");
@@ -40,6 +49,12 @@ const label = computed(() => (isDir.value ? props.node.name : props.node.name.re
 const isActive = computed(() => !isDir.value && editor.activePath === props.node.path);
 const isCollapsed = computed(() => collapsed.value.has(props.node.path));
 const isSelected = computed(() => props.selectedPaths.has(props.node.path));
+const markBefore = computed(
+  () => dropMark.value?.kind === "before" && dropMark.value.path === props.node.path,
+);
+const markAfter = computed(
+  () => dropMark.value?.kind === "after" && dropMark.value.path === props.node.path,
+);
 
 function toggle() {
   const next = new Set(collapsed.value);
@@ -61,29 +76,60 @@ function onDragStart(e: DragEvent) {
   e.dataTransfer?.setData("text/plain", props.node.path);
   if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
   dragging.value = true;
+  dropMark.value = null;
 }
 
 function onDragOver(e: DragEvent) {
   e.preventDefault();
   if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-  dragOver.value = true;
-  // 悬停在折叠文件夹上稍候自动展开,便于继续拖入更深层级
-  if (expandTimer === undefined) {
-    expandTimer = window.setTimeout(() => {
-      expandTimer = undefined;
-      if (isDir.value && isCollapsed.value) {
-        const next = new Set(collapsed.value);
-        next.delete(props.node.path);
-        collapsed.value = next;
-      }
-    }, 600);
+  // 光标处于行边缘带 = 移动到该行的父目录(显示插入线);文件夹中部 = 移入该文件夹(行高亮)
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const edge = Math.min(8, rect.height / 4);
+  const y = e.clientY - rect.top;
+  const pos: "before" | "after" | "into" =
+    isDir.value && y >= edge && y <= rect.height - edge
+      ? "into"
+      : y < rect.height / 2
+        ? "before"
+        : "after";
+  dropPos.value = pos;
+  dragOver.value = pos === "into";
+  dropMark.value = { kind: pos, path: props.node.path };
+  // 悬停在文件夹中部时,折叠文件夹稍候自动展开,便于继续拖入更深层级
+  if (pos === "into") {
+    if (expandTimer === undefined) {
+      expandTimer = window.setTimeout(() => {
+        expandTimer = undefined;
+        if (isDir.value && isCollapsed.value) {
+          const next = new Set(collapsed.value);
+          next.delete(props.node.path);
+          collapsed.value = next;
+        }
+      }, 600);
+    }
+  } else if (expandTimer !== undefined) {
+    window.clearTimeout(expandTimer);
+    expandTimer = undefined;
   }
 }
 
 function endDrag(e?: DragEvent) {
-  // 行内子元素间移动触发的 dragleave 不清高亮,避免闪烁
+  // 行内子元素间移动触发的 dragleave 不清指示,避免闪烁
   if (e && e.relatedTarget instanceof Node && e.currentTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
   dragOver.value = false;
+  const mark = dropMark.value;
+  if (mark && mark.kind !== "root-end" && mark.path === props.node.path) dropMark.value = null;
+  clearExpandTimer();
+}
+
+function onDragEnd() {
+  dragging.value = false;
+  dragOver.value = false;
+  dropMark.value = null;
+  clearExpandTimer();
+}
+
+function clearExpandTimer() {
   if (expandTimer !== undefined) {
     window.clearTimeout(expandTimer);
     expandTimer = undefined;
@@ -93,10 +139,10 @@ function endDrag(e?: DragEvent) {
 function onDrop(e: DragEvent) {
   e.preventDefault();
   e.stopPropagation();
-  endDrag();
+  dropMark.value = null;
   const src = e.dataTransfer?.getData("text/plain");
   if (!src) return;
-  const targetDir = isDir.value ? props.node.path : dirname(props.node.path);
+  const targetDir = dropPos.value === "into" ? props.node.path : dirname(props.node.path);
   if (src !== targetDir) emit("move", src, targetDir);
 }
 </script>
@@ -117,11 +163,14 @@ function onDrop(e: DragEvent) {
       :title="node.name"
       @click="onRowClick"
       @dragstart="onDragStart"
-      @dragend="endDrag"
+      @dragend="onDragEnd"
       @dragover="onDragOver"
       @dragleave="endDrag"
       @drop="onDrop"
     >
+      <!-- 拖拽落点指示线 -->
+      <span v-if="markBefore" class="drop-line drop-line-top" aria-hidden="true" />
+      <span v-if="markAfter" class="drop-line drop-line-bottom" aria-hidden="true" />
       <!-- 多选模式:状态复选框 -->
       <button
         v-if="selectMode"
@@ -188,6 +237,9 @@ function onDrop(e: DragEvent) {
 </template>
 
 <style scoped>
+.tree-row {
+  position: relative;
+}
 .tree-row:hover {
   background: var(--color-surface-2);
 }
@@ -198,6 +250,33 @@ function onDrop(e: DragEvent) {
   background: var(--color-accent-soft);
   outline: 1px dashed var(--color-line-strong);
   outline-offset: -2px;
+}
+/* 拖拽落点插入线:挂在行的上/下边缘,端点带圆点 */
+.drop-line {
+  position: absolute;
+  left: 6px;
+  right: 4px;
+  height: 2px;
+  z-index: 5;
+  border-radius: 1px;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+.drop-line::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.drop-line-top {
+  top: -1.5px;
+}
+.drop-line-bottom {
+  bottom: -1.5px;
 }
 .row-actions {
   transition: opacity var(--duration-base) var(--ease-plain);

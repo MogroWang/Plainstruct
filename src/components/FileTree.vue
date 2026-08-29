@@ -8,7 +8,7 @@ import { useUiStore } from "@/stores/ui";
 import { ipc } from "@/ipc/ipc";
 import { safeName, stripExt } from "@/lib/paths";
 import AppIcon from "./AppIcon.vue";
-import FileTreeNode, { type SelectClick } from "./FileTreeNode.vue";
+import FileTreeNode, { type DropMark, type SelectClick } from "./FileTreeNode.vue";
 import PromptModal from "./PromptModal.vue";
 
 const { t } = useI18n();
@@ -18,6 +18,10 @@ const ui = useUiStore();
 
 const collapsed = ref(new Set<string>());
 provide("treeCollapsed", collapsed);
+
+/** 拖拽落点指示(行插入线 / 移入文件夹 / 根目录末尾) */
+const dropMark = ref<DropMark>(null);
+provide("treeDropMark", dropMark);
 
 /** 过滤掉根级 index.md(作为独立首页),其余保持不变 */
 const displayTree = computed(() =>
@@ -339,6 +343,36 @@ async function onMove(src: string, destDir: string) {
   if (moved > 1) ui.toast(t("tree.importDone", { n: moved }), "success");
   if (moved > 0) clearSelection();
 }
+
+/* ---------- 树空白区域的拖放(移动到根目录 / 外部导入) ---------- */
+
+function onTreeDragOver(e: DragEvent) {
+  e.preventDefault();
+  if (e.dataTransfer && e.dataTransfer.types.includes("text/plain")) {
+    e.dataTransfer.dropEffect = "move";
+  }
+  // 落在行外空白处 = 移动到根目录,指示线挂在列表末尾;行内由节点自行标记
+  if ((e.target as HTMLElement | null)?.closest?.(".tree-row")) return;
+  dropMark.value = { kind: "root-end" };
+}
+
+function onTreeDragLeave(e: DragEvent) {
+  const el = scrollEl.value;
+  if (!el) return;
+  if (e.relatedTarget instanceof Node && el.contains(e.relatedTarget)) return;
+  dropMark.value = null;
+}
+
+async function onTreeDrop(e: DragEvent) {
+  e.preventDefault();
+  dropMark.value = null;
+  const src = e.dataTransfer?.getData("text/plain");
+  if (src) {
+    await onMove(src, "");
+    return;
+  }
+  await onExternalDrop(e);
+}
 </script>
 
 <template>
@@ -408,12 +442,9 @@ async function onMove(src: string, destDir: string) {
       ref="scrollEl"
       class="relative min-h-0 flex-1 overflow-y-auto px-2 pb-4"
       :class="{ 'select-none': selectMode }"
-      @dragover.prevent
-      @drop.prevent="(e: DragEvent) => {
-        const src = e.dataTransfer?.getData('text/plain');
-        if (src) onMove(src, '');
-        else onExternalDrop(e);
-      }"
+      @dragover="onTreeDragOver"
+      @dragleave="onTreeDragLeave"
+      @drop="onTreeDrop"
       @pointerdown="onBandDown"
       @pointermove="onBandMove"
       @pointerup="onBandUp"
@@ -443,6 +474,8 @@ async function onMove(src: string, destDir: string) {
           @select-click="handleSelectClick"
           @import-to="(dir: string) => onImport(dir)"
         />
+        <!-- 拖到空白处:移动到根目录末尾的指示线 -->
+        <div v-if="dropMark?.kind === 'root-end'" class="drop-line-root" aria-hidden="true" />
       </template>
     </div>
 
@@ -531,5 +564,14 @@ async function onMove(src: string, destDir: string) {
   border: 1px solid rgba(28, 25, 23, 0.4);
   background: rgba(28, 25, 23, 0.06);
   border-radius: 3px;
+}
+
+/* 拖到空白处:根目录末尾的插入线 */
+.drop-line-root {
+  height: 2px;
+  margin: 3px 4px 0;
+  border-radius: 1px;
+  background: var(--color-accent);
+  pointer-events: none;
 }
 </style>

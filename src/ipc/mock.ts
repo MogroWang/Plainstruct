@@ -357,6 +357,9 @@ export const mock = {
   },
 
   async moveItem(src: string, destDir: string): Promise<string> {
+    // 源已位于目标目录时为无操作,与 Rust 端行为一致
+    const parent = src.split("/").slice(0, -1).join("/");
+    if (parent === destDir) return src;
     const name = src.split("/").pop()!;
     const newPath = destDir ? `${destDir}/${name}` : name;
     const prefix = `${currentRoot}/content/${src}`;
