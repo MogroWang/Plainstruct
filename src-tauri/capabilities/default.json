@@ -18,6 +18,8 @@
     "core:webview:allow-webview-close",
     "core:webview:allow-get-all-webviews",
     "dialog:default",
-    "opener:default"
+    "opener:default",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text"
   ]
 }

@@ -248,6 +248,13 @@ export default {
     close: "Close",
     language: "Switch language",
     noSite: "No site open",
+    backToMenu: "Back to Menu",
+  },
+  menu: {
+    cut: "Cut",
+    copy: "Copy",
+    paste: "Paste",
+    selectAll: "Select All",
   },
   about: {
     title: "About Plainstruct",

@@ -10,6 +10,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as tg } from "@lezer/highlight";
 import { useEditorStore } from "@/stores/editor";
+import { registerCmView, unregisterCmView } from "@/lib/contextMenu";
 import AppIcon from "@/components/AppIcon.vue";
 
 const { t } = useI18n();
@@ -240,6 +241,8 @@ onMounted(() => {
     }),
     parent: host.value!,
   });
+  // 注册到右键菜单:编辑器内的右键文本操作直接作用于 CodeMirror 选区
+  registerCmView(host.value!, view);
 });
 
 // 打开新文档时整体替换(不触发自动保存回路)
@@ -255,6 +258,7 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  if (host.value) unregisterCmView(host.value);
   view?.destroy();
   view = null;
 });

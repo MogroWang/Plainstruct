@@ -248,6 +248,13 @@ export default {
     close: "关闭",
     language: "切换语言",
     noSite: "未打开站点",
+    backToMenu: "返回主菜单",
+  },
+  menu: {
+    cut: "剪切",
+    copy: "复制",
+    paste: "粘贴",
+    selectAll: "全选",
   },
   about: {
     title: "关于素构",

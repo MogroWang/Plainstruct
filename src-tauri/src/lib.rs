@@ -100,6 +100,7 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(AppState::default())
         .register_uri_scheme_protocol("site", handle_site)
         .invoke_handler(tauri::generate_handler![
@@ -147,6 +148,7 @@ pub fn run() {
             // 系统
             commands::open_path,
             commands::open_external,
+            commands::reload_webview,
         ])
         .setup(|app| {
             let state = app.state::<AppState>();

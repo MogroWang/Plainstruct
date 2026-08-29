@@ -2,8 +2,10 @@
 import { computed, onMounted } from "vue";
 import { useAppStore } from "@/stores/app";
 import { useSiteStore } from "@/stores/site";
+import { installContextMenu } from "@/lib/contextMenu";
 import TitleBar from "@/components/TitleBar.vue";
 import ActivityBar from "@/components/ActivityBar.vue";
+import ContextMenu from "@/components/ContextMenu.vue";
 import FeedbackHost from "@/components/FeedbackHost.vue";
 import StartView from "@/views/StartView.vue";
 import EditorView from "@/views/EditorView.vue";
@@ -30,6 +32,7 @@ const currentView = computed(() => viewMap[app.view as keyof typeof viewMap]);
 
 onMounted(() => {
   void app.init();
+  installContextMenu();
 });
 </script>
 
@@ -68,5 +71,6 @@ onMounted(() => {
     </div>
 
     <FeedbackHost />
+    <ContextMenu />
   </div>
 </template>

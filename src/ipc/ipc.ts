@@ -188,6 +188,35 @@ export const ipc = {
     return inTauri ? invoke<void>("open_external", { url }) : mock.openExternal(url);
   },
 
+  /* ---------- 剪贴板 ---------- */
+  async readClipboardText(): Promise<string> {
+    if (!inTauri) {
+      try {
+        return await navigator.clipboard.readText();
+      } catch {
+        return "";
+      }
+    }
+    try {
+      const { readText } = await import("@tauri-apps/plugin-clipboard-manager");
+      return await readText();
+    } catch {
+      return "";
+    }
+  },
+  async writeClipboardText(text: string): Promise<void> {
+    if (!inTauri) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        /* 浏览器环境权限受限时忽略 */
+      }
+      return;
+    }
+    const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
+    await writeText(text);
+  },
+
   /* ---------- 文件选择 ---------- */
   async pickDirectory(): Promise<string | null> {
     if (!inTauri) return mockPickDirectory();

@@ -1,4 +1,6 @@
 import { defineStore } from "pinia";
+import { invoke } from "@tauri-apps/api/core";
+import type { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { BuildReport } from "@/ipc/types";
 import { buildSite } from "@/lib/builder";
 import { buildIndexUrl } from "@/lib/preview";
@@ -57,8 +59,8 @@ export const useBuilderStore = defineStore("builder", {
     },
 
     /**
-     * 独立预览窗口:打开;已在则关闭重建以加载最新构建。
-     * (静态站点页面没有脚本,无法远程触发刷新,只能重建窗口)
+     * 独立预览窗口:打开;已在则原地刷新加载最新构建(不销毁窗口,位置尺寸不重置)。
+     * 新开窗口时恢复上次关闭前的位置与尺寸。
      */
     async openOrRefreshPreviewWindow() {
       const site = useSiteStore();
@@ -68,20 +70,16 @@ export const useBuilderStore = defineStore("builder", {
         const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
         const existing = await WebviewWindow.getByLabel("site-preview");
         if (existing) {
-          await existing.close();
-          // 等 label 释放再重建,避免 "label already exists"
-          for (let i = 0; i < 10; i++) {
-            await new Promise((r) => setTimeout(r, 120));
-            if (!(await WebviewWindow.getByLabel("site-preview"))) break;
-          }
+          await invoke("reload_webview", { label: "site-preview" });
+          await existing.setFocus();
+          return;
         }
-        new WebviewWindow("site-preview", {
+        const win = new WebviewWindow("site-preview", {
           url: buildIndexUrl(app.platform),
           title: `${site.config?.name ?? "Plainstruct"} · ${i18n.global.t("build.preview")}`,
-          width: 1120,
-          height: 760,
-          center: true,
+          ...previewWindowRect(),
         });
+        void watchPreviewWindow(win);
       } catch {
         /* 非 Tauri 环境忽略 */
       }
@@ -115,4 +113,68 @@ export const useBuilderStore = defineStore("builder", {
 
 function ipcErr(e: unknown): string {
   return typeof e === "string" ? e : e instanceof Error ? e.message : String(e);
+}
+
+/* ---------- 独立预览窗口位置记忆 ---------- */
+
+const PREVIEW_RECT_KEY = "plainstruct.previewWindowRect";
+const PREVIEW_DEFAULT_SIZE = { width: 1120, height: 760 };
+
+/** 上次关闭前的逻辑位置与尺寸;无有效记录时回退默认尺寸并居中 */
+function previewWindowRect(): {
+  x?: number;
+  y?: number;
+  width: number;
+  height: number;
+  center?: boolean;
+} {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PREVIEW_RECT_KEY) ?? "") as Record<string, number>;
+    if ([saved.x, saved.y, saved.width, saved.height].every((n) => Number.isFinite(n))) {
+      return { x: saved.x, y: saved.y, width: saved.width, height: saved.height };
+    }
+  } catch {
+    /* 无记录或已损坏,走默认 */
+  }
+  return { ...PREVIEW_DEFAULT_SIZE, center: true };
+}
+
+/** 监听预览窗口移动/缩放,防抖记录逻辑矩形;窗口销毁后停止监听 */
+async function watchPreviewWindow(win: WebviewWindow) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const save = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const [pos, size, scale] = await Promise.all([
+            win.outerPosition(),
+            win.innerSize(),
+            win.scaleFactor(),
+          ]);
+          localStorage.setItem(
+            PREVIEW_RECT_KEY,
+            JSON.stringify({
+              x: Math.round(pos.x / scale),
+              y: Math.round(pos.y / scale),
+              width: Math.round(size.width / scale),
+              height: Math.round(size.height / scale),
+            }),
+          );
+        } catch {
+          /* 窗口已关闭,忽略 */
+        }
+      })();
+    }, 400);
+  };
+  try {
+    const offMoved = await win.onMoved(save);
+    const offResized = await win.onResized(save);
+    await win.once("tauri://destroyed", () => {
+      offMoved();
+      offResized();
+    });
+  } catch {
+    /* 监听失败不影响窗口使用 */
+  }
 }

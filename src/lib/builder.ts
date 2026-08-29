@@ -81,7 +81,10 @@ function buildNav(nodes: TreeNode[], metas: Map<string, DocMeta>): RawNav[] {
       const indexMeta = indexChild ? metas.get(indexChild.path) : undefined;
       result.push({
         title: indexMeta?.title ?? node.name,
-        htmlPath: indexChild ? mdToHtml(indexChild.path) : undefined,
+        // 有 index.md 用其页面;没有则指向自动生成的文件夹页(dir/index.html)
+        htmlPath: indexChild
+          ? mdToHtml(indexChild.path)
+          : mdToHtml(node.path ? `${node.path}/index.md` : "index.md"),
         children,
       });
     } else if (isMarkdown(node.path) && node.path.toLowerCase() !== "index.md") {
@@ -110,14 +113,14 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
-/** 自动主页的目录 HTML -- 站点介绍页正文(无根级 index.md 时) */
-function homeTocHtml(raw: RawNav[]): string {
+/** 自动目录页的 TOC HTML -- 站点首页与文件夹页共用(该目录没有 index.md 时) */
+function tocHtml(raw: RawNav[], fromDir: string): string {
   const items = (list: RawNav[]): string =>
     list.length
       ? `<ul class="ps-home-list">${list
           .map((item) => {
             const head = item.htmlPath
-              ? `<a class="ps-home-link" href="${encodePath(relPosix("", item.htmlPath))}">${escapeHtml(item.title)}</a>`
+              ? `<a class="ps-home-link" href="${encodePath(relPosix(fromDir, item.htmlPath))}">${escapeHtml(item.title)}</a>`
               : `<span class="ps-home-link">${escapeHtml(item.title)}</span>`;
             return `<li class="ps-home-item">${head}${items(item.children)}</li>`;
           })
@@ -295,17 +298,35 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
     outputs.push({ path: mdToHtml(doc.path), content: html });
   }
 
-  // 主页:根级 index.md 即首页;缺失时自动生成文档介绍页,保证 index.html 始终存在
+  // 根目录:无 index.md 时自动生成站点介绍页(TOC),保证 index.html 始终存在
   if (!mdPaths.some((p) => p.toLowerCase() === "index.md")) {
     const home: DocMeta = {
       path: "index.md",
       title: site.name,
       description: site.description,
       order: 0,
-      body: homeTocHtml(navRaw),
+      body: tocHtml(navRaw, ""),
     };
     const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, home, warnings);
     outputs.push({ path: "index.html", content: html });
+  }
+
+  // 文件夹页:每个没有 index.md 的目录生成一个目录列表页(dir/index.html)
+  const folderPages: DocMeta[] = [];
+  walkTree(tree, (node) => {
+    if (node.type !== "dir") return;
+    const children = node.children ?? [];
+    if (children.some((c) => c.type === "file" && c.name.toLowerCase() === "index.md")) return;
+    folderPages.push({
+      path: `${node.path}/index.md`,
+      title: node.name,
+      order: 0,
+      body: tocHtml(buildNav(children, metas), node.path),
+    });
+  });
+  for (const page of folderPages) {
+    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, page, warnings);
+    outputs.push({ path: mdToHtml(page.path), content: html });
   }
 
   await ipc.clearBuild();

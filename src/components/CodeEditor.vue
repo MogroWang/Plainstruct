@@ -11,6 +11,7 @@ import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
+import { registerCmView, unregisterCmView } from "@/lib/contextMenu";
 
 const props = defineProps<{ modelValue: string; language: "html" | "css" | "json" | "markdown" }>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
@@ -69,6 +70,7 @@ onMounted(() => {
     }),
     parent: host.value!,
   });
+  registerCmView(host.value!, view);
 });
 
 // 语言或外部内容变化时整体替换
@@ -88,6 +90,7 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  if (host.value) unregisterCmView(host.value);
   view?.destroy();
   view = null;
 });

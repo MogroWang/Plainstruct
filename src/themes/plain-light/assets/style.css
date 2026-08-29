@@ -74,6 +74,7 @@ body.font-custom {
   --ps-ink-3: #a8a29e;
   --ps-line: #e7e5e4;
   --ps-code-bg: #f5f5f4;
+  --ps-topbar-h: 54px;
   --ps-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
@@ -113,21 +114,45 @@ body.font-custom {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 8px;
+  padding: 4px 8px;
+  margin: -4px 0;
+  border-radius: 8px;
   color: var(--ps-ink);
   text-decoration: none;
+  transition: background-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* 悬停反馈:提示站点头可点击回到首页 */
+.ps-site:hover {
+  background: var(--ps-chip);
+}
+
+.ps-site:focus-visible {
+  outline: 2px solid var(--ps-accent);
+  outline-offset: 2px;
 }
 
 .ps-logo {
   width: 28px;
   height: 28px;
   object-fit: contain;
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ps-site:hover .ps-logo,
+.ps-topbar-brand:hover .ps-logo {
+  transform: scale(1.08);
 }
 
 .ps-site-name {
   font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.01em;
+  transition: color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ps-site:hover .ps-site-name {
+  color: var(--ps-accent);
 }
 
 .ps-site-desc {
@@ -414,7 +439,8 @@ a.ps-nav-dir:hover {
   max-width: 46%;
   padding: 10px 16px;
   border: 1px solid var(--ps-line);
-  border-radius: 8px;
+  border-radius: 10px;
+  background: var(--ps-surface);
   font-size: 13.5px;
   color: var(--ps-ink-2);
   text-decoration: none;
@@ -422,13 +448,29 @@ a.ps-nav-dir:hover {
   white-space: nowrap;
   text-overflow: ellipsis;
   transition:
-    border-color 120ms cubic-bezier(0.23, 1, 0.32, 1),
-    color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .ps-pager-item:hover {
   border-color: var(--ps-accent);
+  background: var(--ps-chip);
   color: var(--ps-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(28, 25, 23, 0.08);
+}
+
+.ps-pager-item:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.ps-pager-item:focus-visible {
+  outline: 2px solid var(--ps-accent);
+  outline-offset: 2px;
 }
 
 .ps-pager-next {
@@ -436,7 +478,23 @@ a.ps-nav-dir:hover {
 }
 
 .ps-pager-tag {
+  display: inline-block;
   color: var(--ps-ink-3);
+  transition:
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ps-pager-item:hover .ps-pager-tag {
+  color: var(--ps-accent);
+}
+
+.ps-pager-prev:hover .ps-pager-tag {
+  transform: translateX(-3px);
+}
+
+.ps-pager-next:hover .ps-pager-tag {
+  transform: translateX(3px);
 }
 
 /* ---------- 主页目录 ---------- */
@@ -477,6 +535,8 @@ a.ps-home-link:hover {
 /* ---------- 底部署名 ---------- */
 
 .ps-footer {
+  display: flex;
+  justify-content: center;
   max-width: 760px;
   margin: 0 auto;
   padding: 0 32px 40px;
@@ -485,25 +545,37 @@ a.ps-home-link:hover {
 }
 
 .ps-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--ps-line);
+  border-radius: 999px;
   color: inherit;
   text-decoration: none;
+  transition:
+    color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .ps-footer a:hover {
-  color: var(--ps-ink-2);
-  text-decoration: underline;
+  color: var(--ps-ink);
+  border-color: var(--ps-ink-3);
+  background: var(--ps-surface);
 }
 
-/* ---------- 移动端抽屉控件(仅移动端可见) ---------- */
+/* ---------- 移动端顶栏与抽屉控件(仅移动端可见) ---------- */
+
+.ps-topbar {
+  display: none;
+}
 
 .ps-menu-btn {
   display: none;
-  position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: 60;
-  width: 40px;
-  height: 40px;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--ps-line);
@@ -511,11 +583,60 @@ a.ps-home-link:hover {
   background: var(--ps-surface);
   color: var(--ps-ink);
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: background-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ps-menu-btn:hover {
+  background: var(--ps-chip);
 }
 
 .ps-menu-btn:active {
   transform: scale(0.95);
+}
+
+/* 顶栏右侧的站点标识(logo + 名称与描述) */
+.ps-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-left: auto;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: var(--ps-ink);
+  text-decoration: none;
+  transition: background-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ps-topbar-brand:hover {
+  background: var(--ps-chip);
+}
+
+.ps-topbar-brand .ps-logo {
+  width: 22px;
+  height: 22px;
+}
+
+.ps-topbar-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.ps-topbar-text .ps-site-name {
+  font-size: 13.5px;
+}
+
+.ps-topbar-desc {
+  max-width: 44vw;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ps-ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ps-mask {
@@ -527,18 +648,40 @@ a.ps-home-link:hover {
 @media (max-width: 900px) {
   .ps-shell {
     display: block;
+    /* 给固定顶栏让位,避免按钮遮挡内容 */
+    padding-top: var(--ps-topbar-h);
   }
 
-  /* 文档列表默认折叠,点左上角按钮从左侧弹出 */
-  .ps-sidebar {
+  /* 顶栏:菜单按钮居左,站点标识居右 */
+  .ps-topbar {
     position: fixed;
     top: 0;
     left: 0;
+    right: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: var(--ps-topbar-h);
+    padding: 0 12px;
+    background: var(--ps-surface);
+    border-bottom: 1px solid var(--ps-line);
+  }
+
+  .ps-menu-btn {
+    display: flex;
+  }
+
+  /* 文档列表默认折叠,点顶栏按钮从顶栏下方弹出 */
+  .ps-sidebar {
+    position: fixed;
+    top: var(--ps-topbar-h);
+    left: 0;
     bottom: 0;
-    z-index: 50;
+    z-index: 60;
     width: min(84vw, 320px);
     max-height: none;
-    padding-top: 68px;
+    padding-top: 24px;
     transform: translateX(-104%);
     transition: transform 280ms cubic-bezier(0.23, 1, 0.32, 1);
     border-right: 1px solid var(--ps-line);
@@ -549,15 +692,14 @@ a.ps-home-link:hover {
     transform: translateX(0);
   }
 
-  .ps-menu-btn {
-    display: flex;
-  }
-
   .ps-mask {
     display: block;
     position: fixed;
-    inset: 0;
-    z-index: 40;
+    top: var(--ps-topbar-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
     background: rgba(0, 0, 0, 0.4);
     opacity: 0;
     pointer-events: none;

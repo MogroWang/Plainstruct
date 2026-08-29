@@ -5,8 +5,9 @@ import type { TreeNode } from "@/ipc/types";
 import { useSiteStore } from "@/stores/site";
 import { useEditorStore } from "@/stores/editor";
 import { useUiStore } from "@/stores/ui";
+import { useContextMenuStore, type MenuItem } from "@/stores/contextMenu";
 import { ipc } from "@/ipc/ipc";
-import { safeName, stripExt } from "@/lib/paths";
+import { dirname, safeName, stripExt } from "@/lib/paths";
 import AppIcon from "./AppIcon.vue";
 import FileTreeNode, { type DropMark, type SelectClick } from "./FileTreeNode.vue";
 import PromptModal from "./PromptModal.vue";
@@ -15,6 +16,7 @@ const { t } = useI18n();
 const site = useSiteStore();
 const editor = useEditorStore();
 const ui = useUiStore();
+const ctxMenu = useContextMenuStore();
 
 const collapsed = ref(new Set<string>());
 provide("treeCollapsed", collapsed);
@@ -275,6 +277,81 @@ async function onRemove(node: TreeNode) {
   }
 }
 
+/* ---------- 右键菜单(文件操作) ---------- */
+
+/** 按路径在完整树中查找节点 */
+function findNodeByPath(path: string): TreeNode | null {
+  const walk = (nodes: TreeNode[]): TreeNode | null => {
+    for (const n of nodes) {
+      if (n.path === path) return n;
+      const hit = n.children ? walk(n.children) : null;
+      if (hit) return hit;
+    }
+    return null;
+  };
+  return walk(site.tree);
+}
+
+/** 树内右键:命中行弹出该节点的文件操作,空白处弹出根目录操作 */
+function openTreeMenu(e: MouseEvent) {
+  const target = e.target as HTMLElement | null;
+  const row = target?.closest<HTMLElement>(".tree-row") ?? null;
+  const node = row?.dataset.path ? findNodeByPath(row.dataset.path) : null;
+  const dir = node ? (node.type === "dir" ? node.path : dirname(node.path)) : "";
+
+  const items: MenuItem[] = [
+    {
+      id: "newDoc",
+      label: t("tree.newDoc"),
+      icon: "filePlus",
+      run: () => (prompt.value = { mode: "newDoc", dir }),
+    },
+    {
+      id: "newFolder",
+      label: t("tree.newFolder"),
+      icon: "folderPlus",
+      run: () => (prompt.value = { mode: "newFolder", parent: dir }),
+    },
+  ];
+  if (node?.type === "dir") {
+    items.push({
+      id: "import",
+      label: t("tree.importToFolder"),
+      icon: "download",
+      run: () => void onImport(node.path),
+    });
+  } else if (!node) {
+    items.push({
+      id: "import",
+      label: t("tree.importFiles"),
+      icon: "download",
+      run: () => void onImport(""),
+    });
+  }
+  if (node) {
+    items.push(
+      { id: "sep", separator: true },
+      {
+        id: "rename",
+        label: t("tree.rename"),
+        icon: "pencil",
+        run: () => (prompt.value = { mode: "rename", node }),
+      },
+      {
+        id: "delete",
+        label: t("tree.delete"),
+        icon: "trash",
+        danger: true,
+        run: () => void onRemove(node),
+      },
+    );
+  }
+
+  e.preventDefault();
+  e.stopPropagation();
+  ctxMenu.show(e.clientX, e.clientY, items);
+}
+
 /* ---------- 导入 ---------- */
 
 async function onImport(destDir: string = "") {
@@ -376,7 +453,7 @@ async function onTreeDrop(e: DragEvent) {
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
+  <div class="flex h-full flex-col" @contextmenu="openTreeMenu">
     <div class="flex items-center justify-between px-3 pb-1 pt-3">
       <span class="text-[12px] font-semibold tracking-wide text-ink-3">
         {{ t("nav.editor") }} · {{ site.docCount }}
