@@ -7,13 +7,19 @@ import { useAppStore } from "@/stores/app";
 import { ipc } from "@/ipc/ipc";
 import { siteUrl } from "@/lib/preview";
 import AppIcon from "@/components/AppIcon.vue";
+import SelectMenu from "@/components/SelectMenu.vue";
 
 const { t } = useI18n();
 const site = useSiteStore();
 const ui = useUiStore();
 const app = useAppStore();
 
-const form = reactive({ name: "", description: "" });
+const languageOptions = [
+  { value: "zh-CN", label: "简体中文" },
+  { value: "en-US", label: "English" },
+];
+
+const form = reactive({ name: "", description: "", locale: "zh-CN", titleFormat: "" });
 const saving = ref(false);
 const pickingLogo = ref(false);
 
@@ -23,6 +29,8 @@ watch(
     if (cfg) {
       form.name = cfg.name;
       form.description = cfg.description ?? "";
+      form.locale = cfg.locale ?? "zh-CN";
+      form.titleFormat = cfg.titleFormat ?? "";
     }
   },
   { immediate: true },
@@ -37,6 +45,8 @@ async function save() {
     await site.saveConfig({
       name: form.name.trim(),
       description: form.description.trim() || undefined,
+      locale: form.locale || undefined,
+      titleFormat: form.titleFormat.trim() || undefined,
     });
     ui.toast(t("site.saved"), "success");
   } catch (e) {
@@ -90,6 +100,22 @@ function openFolder() {
           <div>
             <label class="field-label">{{ t("site.description") }}</label>
             <input v-model="form.description" class="input" type="text" :placeholder="t('site.descriptionPlaceholder')" />
+          </div>
+          <div>
+            <label class="field-label">{{ t("site.titleFormat") }}</label>
+            <input
+              v-model="form.titleFormat"
+              class="input"
+              type="text"
+              :placeholder="t('site.titleFormatPlaceholder')"
+              spellcheck="false"
+            />
+            <p class="field-hint">{{ t("site.titleFormatHint") }}</p>
+          </div>
+          <div>
+            <label class="field-label">{{ t("site.language") }}</label>
+            <SelectMenu v-model="form.locale" :options="languageOptions" align="left" />
+            <p class="field-hint">{{ t("site.languageHint") }}</p>
           </div>
           <div>
             <label class="field-label">{{ t("site.logo") }}</label>

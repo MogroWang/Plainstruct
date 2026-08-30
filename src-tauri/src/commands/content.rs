@@ -21,7 +21,41 @@ fn content_root(root: &PathBuf) -> PathBuf {
     root.join("content")
 }
 
-/// 递归构建内容树:目录优先,保持文件系统原始顺序
+/// 自然排序:数字段按数值比较,其余按小写字母比较。
+/// 文档顺序只取决于名称本身,与文件系统返回顺序无关(构建站点与内容页共用该顺序)。
+fn natural_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    let av: Vec<char> = a.to_lowercase().chars().collect();
+    let bv: Vec<char> = b.to_lowercase().chars().collect();
+    let (mut i, mut j) = (0usize, 0usize);
+    while i < av.len() && j < bv.len() {
+        if av[i].is_ascii_digit() && bv[j].is_ascii_digit() {
+            let mut i2 = i;
+            while i2 < av.len() && av[i2].is_ascii_digit() {
+                i2 += 1;
+            }
+            let mut j2 = j;
+            while j2 < bv.len() && bv[j2].is_ascii_digit() {
+                j2 += 1;
+            }
+            let an: u64 = av[i..i2].iter().collect::<String>().parse().unwrap_or(u64::MAX);
+            let bn: u64 = bv[j..j2].iter().collect::<String>().parse().unwrap_or(u64::MAX);
+            if an != bn {
+                return an.cmp(&bn);
+            }
+            i = i2;
+            j = j2;
+        } else {
+            if av[i] != bv[j] {
+                return av[i].cmp(&bv[j]);
+            }
+            i += 1;
+            j += 1;
+        }
+    }
+    (av.len() - i).cmp(&(bv.len() - j))
+}
+
+/// 递归构建内容树:目录优先,同级按名称自然排序(顺序固定)
 fn walk(dir: &PathBuf, rel: &str) -> Vec<TreeNode> {
     let mut dirs: Vec<(String, PathBuf)> = Vec::new();
     let mut files: Vec<(String, PathBuf)> = Vec::new();
@@ -40,6 +74,8 @@ fn walk(dir: &PathBuf, rel: &str) -> Vec<TreeNode> {
             files.push((name, entry.path()));
         }
     }
+    dirs.sort_by(|a, b| natural_cmp(&a.0, &b.0));
+    files.sort_by(|a, b| natural_cmp(&a.0, &b.0));
 
     let mut nodes = Vec::new();
     for (name, path) in dirs {

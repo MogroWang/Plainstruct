@@ -42,6 +42,8 @@ export interface SiteConfig {
   name: string;
   description?: string;
   logo?: string; // .plainstruct/assets/ 内的文件名
+  locale?: string; // 站点语言:生成页面的 <html lang>
+  titleFormat?: string; // 浏览器标题格式,如 "{page} · {site}"
   theme: SiteThemeRef;
 }
 

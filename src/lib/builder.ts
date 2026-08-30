@@ -138,6 +138,29 @@ function flattenNav(raw: RawNav[]): RawNav[] {
   return out;
 }
 
+/** 浏览器标签页标题:按站点 titleFormat 拼接 {page}/{site},首页只显示站点名 */
+function pageTitle(site: SiteConfig, docTitle: string): string {
+  if (docTitle === site.name) return site.name;
+  const fmt = (site.titleFormat ?? "").trim() || "{page} · {site}";
+  if (!fmt.includes("{page}")) return site.name;
+  return fmt.replace(/\{page\}/g, docTitle).replace(/\{site\}/g, site.name);
+}
+
+/** 当前页在导航中的面包屑(不含页面自身),用于移动端顶栏 */
+function crumbsFor(raw: RawNav[], currentHtml: string): string[] {
+  const walk = (items: RawNav[], trail: string[]): string[] | null => {
+    for (const item of items) {
+      const next = [...trail, item.title];
+      if (item.htmlPath === currentHtml) return next;
+      const hit = item.children.length ? walk(item.children, next) : null;
+      if (hit) return hit;
+    }
+    return null;
+  };
+  const chain = walk(raw, []);
+  return chain ? chain.slice(0, -1) : [];
+}
+
 /** 渲染单页(构建与预览共用)。warnings 为空数组时收集,预览可忽略。 */
 function renderOnePage(
   site: SiteConfig,
@@ -167,6 +190,7 @@ function renderOnePage(
       name: site.name,
       description: site.description,
       logo: logoUrl ?? (site.logo ? prefix + "assets/" + encodePath(site.logo) : undefined),
+      locale: site.locale || "zh-CN",
     },
     page: {
       title: doc.title,
@@ -175,6 +199,8 @@ function renderOnePage(
       path: doc.path,
       url: htmlPath,
       relPrefix: prefix,
+      fullTitle: pageTitle(site, doc.title),
+      crumbs: crumbsFor(navRaw, htmlPath),
     },
     nav: navForPage(navRaw, htmlPath, outDir),
     prev: prev ? { title: prev.title, url: encodePath(relPosix(outDir, prev.htmlPath!)) } : undefined,

@@ -20,7 +20,6 @@ if (Test-Path $outDir) {
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
 Copy-Item -LiteralPath $exe -Destination $outDir
-Copy-Item -LiteralPath (Join-Path $root "public\logo.svg") -Destination $outDir
 
 if (Test-Path $zipPath) {
   Remove-Item -LiteralPath $zipPath -Force

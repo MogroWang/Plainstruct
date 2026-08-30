@@ -42,7 +42,7 @@ function openOutput() {
     <div class="flex min-h-0 flex-1">
       <!-- 侧栏:构建报告 -->
       <aside class="flex w-[280px] shrink-0 flex-col overflow-y-auto border-r border-line bg-surface">
-        <div class="flex flex-col gap-5 p-5">
+        <div class="flex min-h-0 flex-1 flex-col gap-5 p-5">
           <template v-if="builder.report">
             <div>
               <h2 class="field-label">{{ t("build.report") }}</h2>
@@ -92,6 +92,18 @@ function openOutput() {
             <p class="text-[13.5px] font-semibold">{{ t("build.emptyTitle") }}</p>
             <p class="text-[12.5px] leading-relaxed text-ink-3">{{ t("build.emptyBody") }}</p>
           </div>
+
+          <!-- 输出操作:与「重新构建」同规格的大按钮 -->
+          <div class="mt-auto flex flex-col gap-2 border-t border-line pt-4">
+            <button v-if="ipc.inTauri" class="btn btn-secondary w-full" @click="builder.openOrRefreshPreviewWindow">
+              <AppIcon name="window" :size="15" />
+              {{ t("build.openWindow") }}
+            </button>
+            <button class="btn btn-secondary w-full" @click="openOutput">
+              <AppIcon name="external" :size="15" />
+              {{ t("build.openFolder") }}
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -100,14 +112,6 @@ function openOutput() {
         <div class="flex h-10 shrink-0 items-center gap-2 border-b border-line bg-surface px-4">
           <span class="text-[12.5px] font-semibold text-ink-2">{{ t("build.preview") }}</span>
           <span class="text-[11.5px] text-ink-3">{{ t("build.previewHint") }}</span>
-          <div class="ml-auto flex items-center gap-1">
-            <button v-if="ipc.inTauri" class="btn-icon" :title="t('build.openWindow')" @click="builder.openOrRefreshPreviewWindow">
-              <AppIcon name="window" :size="15" />
-            </button>
-            <button class="btn-icon" :title="t('build.openFolder')" @click="openOutput">
-              <AppIcon name="external" :size="15" />
-            </button>
-          </div>
         </div>
         <div class="min-h-0 flex-1">
           <PreviewFrame v-if="builder.report" />

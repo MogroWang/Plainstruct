@@ -200,6 +200,10 @@ function ensureInit() {
 
 /* ---------------- 树 ---------------- */
 
+/** 与 Rust 端 walk 一致:目录优先,同级按名称自然排序(顺序固定) */
+const treeCollator = new Intl.Collator("zh", { numeric: true, sensitivity: "base" });
+const byName = (a: TreeNode, b: TreeNode) => treeCollator.compare(a.name, b.name);
+
 function buildTree(root: string): TreeNode[] {
   const prefix = `${root}/content/`;
   const rels = [...files.keys()]
@@ -230,7 +234,12 @@ function buildTree(root: string): TreeNode[] {
     if (parent) parent.children!.push(node);
     else nodes.push(node);
   }
-  return nodes;
+  const sortTree = (list: TreeNode[]): TreeNode[] => {
+    list.sort(byName);
+    for (const n of list) if (n.children) sortTree(n.children);
+    return list;
+  };
+  return sortTree(nodes);
 }
 
 /* ---------------- 命令实现 ---------------- */

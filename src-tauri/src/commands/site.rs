@@ -22,6 +22,10 @@ pub struct SiteConfig {
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub logo: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locale: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_format: Option<String>,
     pub theme: SiteThemeRef,
 }
 
@@ -31,6 +35,8 @@ impl Default for SiteConfig {
             name: "未命名站点".into(),
             description: None,
             logo: None,
+            locale: None,
+            title_format: None,
             theme: SiteThemeRef {
                 id: "plain-light".into(),
                 source: "builtin".into(),
@@ -145,6 +151,10 @@ pub struct SiteConfigPatch {
     #[serde(default)]
     pub logo: Option<String>,
     #[serde(default)]
+    pub locale: Option<String>,
+    #[serde(default)]
+    pub title_format: Option<String>,
+    #[serde(default)]
     pub theme: Option<SiteThemeRef>,
 }
 
@@ -160,6 +170,17 @@ pub fn save_site_config(state: State<'_, AppState>, patch: SiteConfigPatch) -> R
             None => existing.description,
         },
         logo: patch.logo.or(existing.logo),
+        locale: match patch.locale {
+            Some(l) if l.trim().is_empty() => None,
+            Some(l) => Some(l),
+            None => existing.locale,
+        },
+        // 空字符串 = 清除格式,回退默认连接符
+        title_format: match patch.title_format {
+            Some(f) if f.trim().is_empty() => None,
+            Some(f) => Some(f),
+            None => existing.title_format,
+        },
         theme: patch.theme.unwrap_or(existing.theme),
     };
     write_site_config_file(&root, &cfg)?;

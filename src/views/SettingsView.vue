@@ -5,6 +5,7 @@ import { useAppStore } from "@/stores/app";
 import { ipc } from "@/ipc/ipc";
 import type { Locale } from "@/ipc/types";
 import AppIcon from "@/components/AppIcon.vue";
+import SelectMenu from "@/components/SelectMenu.vue";
 
 const { t } = useI18n();
 const app = useAppStore();
@@ -14,12 +15,51 @@ const localeOptions: { value: Locale; label: string }[] = [
   { value: "en-US", label: "English" },
 ];
 
-async function onLocaleChange(locale: Locale) {
-  await app.setLocale(locale);
-}
+const localeModel = computed({
+  get: () => app.settings.locale,
+  set: (v: Locale) => void app.setLocale(v),
+});
 
 async function onAutosaveToggle() {
   await app.setAutosave(!app.settings.autosave);
+}
+
+/* ---------- 左侧分区导航 + 滚动联动 ---------- */
+
+const sections = computed(() => [
+  { id: "language", label: t("settings.sectionLanguage") },
+  { id: "editor", label: t("settings.sectionEditor") },
+  { id: "about", label: t("settings.sectionAbout") },
+]);
+
+const scrollEl = ref<HTMLElement | null>(null);
+const active = ref("language");
+const sectionEls: Record<string, HTMLElement | null> = {};
+
+function setSectionRef(id: string) {
+  return (el: unknown) => {
+    sectionEls[id] = (el as HTMLElement | null) ?? null;
+  };
+}
+
+function onScroll() {
+  const el = scrollEl.value;
+  if (!el) return;
+  const line = el.scrollTop + 96;
+  let cur = sections.value[0]?.id ?? "language";
+  for (const s of sections.value) {
+    const sec = sectionEls[s.id];
+    if (sec && sec.offsetTop <= line) cur = s.id;
+  }
+  active.value = cur;
+}
+
+function goTo(id: string) {
+  active.value = id;
+  const sec = sectionEls[id];
+  const el = scrollEl.value;
+  if (!sec || !el) return;
+  el.scrollTo({ top: Math.max(sec.offsetTop - 16, 0), behavior: "smooth" });
 }
 
 /* ---------- 检查更新(以 GitHub 最新 Release 为准) ---------- */
@@ -66,129 +106,174 @@ function openRelease(url: string) {
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
-    <div class="border-b border-line px-6 py-5">
-      <div class="flex items-center gap-3">
+  <div class="flex h-full">
+    <!-- 左侧:分区导航(PC 桌面应用式) -->
+    <aside class="flex w-[208px] shrink-0 flex-col border-r border-line bg-surface">
+      <div class="flex items-center gap-2 px-3 pb-2 pt-4">
         <button class="btn-icon" :title="t('common.back')" @click="app.setView('editor')">
-          <AppIcon name="arrowLeft" :size="18" />
+          <AppIcon name="arrowLeft" :size="17" />
         </button>
-        <div>
-          <h2 class="text-[18px] font-semibold tracking-tight">{{ t("settings.title") }}</h2>
-          <p class="mt-1 text-[13px] text-ink-3">{{ t("settings.subtitle") }}</p>
-        </div>
+        <h2 class="truncate text-[14.5px] font-semibold tracking-tight">{{ t("settings.title") }}</h2>
       </div>
-    </div>
+      <p class="px-4 text-[11.5px] leading-relaxed text-ink-3">{{ t("settings.subtitle") }}</p>
 
-    <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-      <!-- 语言 -->
-      <section class="mb-8">
-        <h3 class="mb-3 text-[13px] font-semibold uppercase tracking-wider text-ink-3">
-          {{ t("settings.sectionLanguage") }}
-        </h3>
-        <div class="rounded-lg border border-line bg-surface p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-[14px] font-medium">{{ t("settings.language") }}</p>
-              <p class="mt-0.5 text-[12.5px] text-ink-3">{{ t("settings.languageHint") }}</p>
+      <nav class="mt-5 flex flex-col gap-0.5 px-2">
+        <button
+          v-for="s in sections"
+          :key="s.id"
+          class="settings-nav-item"
+          :class="{ active: active === s.id }"
+          @click="goTo(s.id)"
+        >
+          {{ s.label }}
+        </button>
+      </nav>
+
+      <div class="mt-auto px-4 pb-4 text-[11px] text-ink-3 mono">v{{ app.version }}</div>
+    </aside>
+
+    <!-- 右侧:设置内容 -->
+    <div ref="scrollEl" class="relative min-h-0 flex-1 overflow-y-auto" @scroll.passive="onScroll">
+      <div class="mx-auto w-full max-w-[640px] px-8 py-8">
+        <!-- 语言 -->
+        <section :ref="setSectionRef('language')" class="mb-9">
+          <h3 class="mb-2.5 text-[12.5px] font-semibold uppercase tracking-wider text-ink-3">
+            {{ t("settings.sectionLanguage") }}
+          </h3>
+          <div class="divide-y divide-line rounded-xl border border-line bg-surface px-4">
+            <div class="settings-row">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">{{ t("settings.language") }}</p>
+                <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.languageHint") }}</p>
+              </div>
+              <SelectMenu v-model="localeModel" :options="localeOptions" align="right" class="shrink-0" />
             </div>
-            <select
-              class="h-9 rounded-md border border-line bg-bg px-3 text-[13px] text-ink outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-              :value="app.settings.locale"
-              @change="onLocaleChange(($event.target as HTMLSelectElement).value as Locale)"
-            >
-              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </option>
-            </select>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- 编辑器 -->
-      <section class="mb-8">
-        <h3 class="mb-3 text-[13px] font-semibold uppercase tracking-wider text-ink-3">
-          {{ t("settings.sectionEditor") }}
-        </h3>
-        <div class="rounded-lg border border-line bg-surface p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-[14px] font-medium">{{ t("settings.autosave") }}</p>
-              <p class="mt-0.5 text-[12.5px] text-ink-3">{{ t("settings.autosaveHint") }}</p>
-            </div>
-            <button
-              class="relative inline-flex h-6 w-10 items-center rounded-full transition-colors"
-              :class="app.settings.autosave ? 'bg-accent' : 'bg-line-strong'"
-              role="switch"
-              :aria-checked="app.settings.autosave"
-              @click="onAutosaveToggle"
-            >
-              <span
-                class="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
-                :class="app.settings.autosave ? 'translate-x-[22px]' : 'translate-x-[4px]'"
-              />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- 关于 -->
-      <section>
-        <h3 class="mb-3 text-[13px] font-semibold uppercase tracking-wider text-ink-3">
-          {{ t("settings.sectionAbout") }}
-        </h3>
-        <div class="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-[14px] font-medium">{{ t("settings.version") }}</p>
-              <p class="mt-0.5 text-[12.5px] text-ink-3">{{ app.version }}</p>
-            </div>
-            <button
-              class="btn btn-secondary flex items-center gap-1.5 text-[13px]"
-              @click="app.setView('about')"
-            >
-              <AppIcon name="info" :size="14" />
-              {{ t("nav.about") }}
-            </button>
-          </div>
-
-          <!-- 检查更新 -->
-          <div class="flex items-center justify-between border-t border-line pt-4">
-            <div class="min-w-0 pr-4">
-              <p class="text-[14px] font-medium">{{ t("settings.checkUpdate") }}</p>
-              <p
-                class="mt-0.5 truncate text-[12.5px]"
-                :class="update.kind === 'available' ? 'text-accent' : update.kind === 'error' ? 'text-danger' : 'text-ink-3'"
-              >
-                {{ updateHint }}
-              </p>
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
+        <!-- 编辑器 -->
+        <section :ref="setSectionRef('editor')" class="mb-9">
+          <h3 class="mb-2.5 text-[12.5px] font-semibold uppercase tracking-wider text-ink-3">
+            {{ t("settings.sectionEditor") }}
+          </h3>
+          <div class="divide-y divide-line rounded-xl border border-line bg-surface px-4">
+            <div class="settings-row">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">{{ t("settings.autosave") }}</p>
+                <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.autosaveHint") }}</p>
+              </div>
               <button
-                v-if="update.kind === 'available'"
-                class="btn btn-primary flex items-center gap-1.5 text-[13px]"
-                @click="openRelease(update.url)"
+                class="relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors"
+                :class="app.settings.autosave ? 'bg-accent' : 'bg-line-strong'"
+                role="switch"
+                :aria-checked="app.settings.autosave"
+                @click="onAutosaveToggle"
               >
-                <AppIcon name="external" :size="14" />
-                {{ t("settings.viewRelease") }}
-              </button>
-              <button
-                class="btn btn-secondary flex items-center gap-1.5 text-[13px]"
-                :disabled="update.kind === 'checking'"
-                @click="checkUpdate"
-              >
-                <AppIcon name="refresh" :size="14" :class="{ 'animate-spin': update.kind === 'checking' }" />
-                {{
-                  update.kind === "checking"
-                    ? t("settings.checking")
-                    : update.kind === "latest"
-                      ? t("settings.checkAgain")
-                      : t("settings.checkUpdate")
-                }}
+                <span
+                  class="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
+                  :class="app.settings.autosave ? 'translate-x-[22px]' : 'translate-x-[4px]'"
+                />
               </button>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <!-- 关于 -->
+        <section :ref="setSectionRef('about')">
+          <h3 class="mb-2.5 text-[12.5px] font-semibold uppercase tracking-wider text-ink-3">
+            {{ t("settings.sectionAbout") }}
+          </h3>
+          <div class="divide-y divide-line rounded-xl border border-line bg-surface px-4">
+            <div class="settings-row">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">{{ t("settings.version") }}</p>
+                <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ app.version }}</p>
+              </div>
+              <button class="btn btn-secondary shrink-0" @click="app.setView('about')">
+                <AppIcon name="info" :size="14" />
+                {{ t("nav.about") }}
+              </button>
+            </div>
+
+            <!-- 检查更新 -->
+            <div class="settings-row">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">{{ t("settings.checkUpdate") }}</p>
+                <p
+                  class="mt-0.5 truncate text-[12px] leading-relaxed"
+                  :class="update.kind === 'available' ? 'text-accent' : update.kind === 'error' ? 'text-danger' : 'text-ink-3'"
+                >
+                  {{ updateHint }}
+                </p>
+              </div>
+              <div class="flex shrink-0 items-center gap-2">
+                <button
+                  v-if="update.kind === 'available'"
+                  class="btn btn-primary"
+                  @click="openRelease(update.url)"
+                >
+                  <AppIcon name="external" :size="14" />
+                  {{ t("settings.viewRelease") }}
+                </button>
+                <button class="btn btn-secondary" :disabled="update.kind === 'checking'" @click="checkUpdate">
+                  <AppIcon name="refresh" :size="14" :class="{ 'animate-spin': update.kind === 'checking' }" />
+                  {{
+                    update.kind === "checking"
+                      ? t("settings.checking")
+                      : update.kind === "latest"
+                        ? t("settings.checkAgain")
+                        : t("settings.checkUpdate")
+                  }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 分区导航项:悬停浅底,当前项实底 */
+.settings-nav-item {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-ink-2);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-plain),
+    color var(--duration-fast) var(--ease-plain);
+}
+.settings-nav-item:hover {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+}
+.settings-nav-item.active {
+  background: var(--color-surface-3);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+/* 设置行:标签与控件左右分布,行间细分隔线 */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 0;
+}
+.settings-row:first-child {
+  padding-top: 15px;
+}
+.settings-row:last-child {
+  padding-bottom: 15px;
+}
+</style>

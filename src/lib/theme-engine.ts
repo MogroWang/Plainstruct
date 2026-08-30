@@ -17,7 +17,7 @@ export interface NavItem {
 }
 
 export interface PageContext {
-  site: { name: string; description?: string; logo?: string };
+  site: { name: string; description?: string; logo?: string; locale?: string };
   page: {
     title: string;
     description?: string;
@@ -25,6 +25,10 @@ export interface PageContext {
     path: string;
     url: string;
     relPrefix: string;
+    /** 浏览器标签页标题(按站点 titleFormat 拼接) */
+    fullTitle?: string;
+    /** 当前页在导航中的面包屑(不含页面自身),移动端顶栏展示 */
+    crumbs?: string[];
   };
   nav: NavItem[];
   prev?: { title: string; url: string };

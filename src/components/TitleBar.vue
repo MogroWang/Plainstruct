@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { useAppStore } from "@/stores/app";
 import { useSiteStore } from "@/stores/site";
 import AppIcon from "./AppIcon.vue";
+import BrandLogo from "./BrandLogo.vue";
 
 const { t } = useI18n();
 const app = useAppStore();
@@ -44,9 +45,10 @@ async function goToStart() {
       <button class="btn-icon !h-3 !w-3 !rounded-full" style="background:#e5e3e1" :title="t('titlebar.maximize')" @click="winAction('toggleMaximize')" />
     </div>
 
-    <div class="brand flex items-center gap-2 cursor-pointer" data-tauri-drag-region @click="goToStart">
+    <!-- 仅在站点打开时(点击可返回主菜单)才给予悬停反馈与手型光标 -->
+    <div class="brand flex items-center gap-2" :class="site.open && 'can-back cursor-pointer'" data-tauri-drag-region @click="goToStart">
       <span class="brand-id flex items-center gap-2">
-        <img src="/logo.svg" alt="" class="h-5 w-5" draggable="false" />
+        <BrandLogo :size="20" class="shrink-0" />
         <span class="text-[13px] font-semibold tracking-tight">{{ t("app.name") }}</span>
         <span v-if="site.open && site.config" class="text-[13px] text-ink-3">/</span>
         <span v-if="site.open && site.config" class="text-[13px] text-ink-2">{{ site.config.name }}</span>
@@ -83,7 +85,7 @@ async function goToStart() {
   -webkit-app-region: no-drag;
 }
 
-/* 品牌区悬停:默认标识滑出,「返回主菜单」以非线性缓动滑入 */
+/* 品牌区悬停:仅站点打开时响应 —— 默认标识滑出,「返回主菜单」以非线性缓动滑入 */
 .brand {
   position: relative;
 }
@@ -92,7 +94,7 @@ async function goToStart() {
     opacity var(--duration-base) var(--ease-plain),
     transform var(--duration-slow) var(--ease-plain);
 }
-.brand:hover .brand-id {
+.brand.can-back:hover .brand-id {
   opacity: 0;
   transform: translateX(-10px);
 }
@@ -113,14 +115,14 @@ async function goToStart() {
     opacity var(--duration-base) var(--ease-plain),
     transform var(--duration-slow) var(--ease-plain);
 }
-.brand:hover .brand-back {
+.brand.can-back:hover .brand-back {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }
 .brand-back-arrow {
   transition: transform var(--duration-slow) var(--ease-plain);
 }
-.brand:hover .brand-back-arrow {
+.brand.can-back:hover .brand-back-arrow {
   transform: translateX(-2px);
 }
 @media (prefers-reduced-motion: reduce) {

@@ -33,6 +33,7 @@ const emit = defineEmits<{
   move: [src: string, destDir: string];
   selectClick: [click: SelectClick];
   importTo: [dir: string];
+  editPage: [node: TreeNode];
 }>();
 
 const editor = useEditorStore();
@@ -200,6 +201,9 @@ function onDrop(e: DragEvent) {
       </span>
 
       <span v-if="!selectMode" class="row-actions flex items-center opacity-0">
+        <button v-if="isDir" class="btn-icon !h-6 !w-6" :title="$t('tree.editFolderPage')" tabindex="-1" @click.stop="emit('editPage', node)">
+          <AppIcon name="doc" :size="13" />
+        </button>
         <button v-if="isDir" class="btn-icon !h-6 !w-6" :title="$t('tree.importToFolder')" tabindex="-1" @click.stop="emit('importTo', node.path)">
           <AppIcon name="download" :size="13" />
         </button>
@@ -230,6 +234,7 @@ function onDrop(e: DragEvent) {
           @move="(s: string, d: string) => emit('move', s, d)"
           @select-click="(c: SelectClick) => emit('selectClick', c)"
           @import-to="(d: string) => emit('importTo', d)"
+          @edit-page="(n: TreeNode) => emit('editPage', n)"
         />
       </div>
     </div>

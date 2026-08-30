@@ -1,7 +1,7 @@
 {
   "id": "plain-light",
   "name": "素构 · 浅色",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "MogroWang Studio",
   "description": "默认浅色主题:灰白纸感,墨色强调,系统字体。",
   "config": [
@@ -39,7 +39,7 @@
       "label": "页面过渡动画",
       "type": "select",
       "default": "淡入上浮",
-      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现"]
+      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现", "滑入", "弹性浮现", "模糊聚焦", "翻页", "揭开"]
     },
     {
       "key": "showDescription",
