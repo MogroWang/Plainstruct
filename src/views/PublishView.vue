@@ -56,7 +56,7 @@ function openPages() {
           </div>
 
           <label class="flex cursor-pointer items-center gap-2 text-[13px] text-ink-2">
-            <input v-model="publish.config.autoCreate" type="checkbox" class="h-[14px] w-[14px] accent-[#333]" />
+            <input v-model="publish.config.autoCreate" type="checkbox" class="h-[14px] w-[14px] accent-[var(--color-accent)]" />
             {{ t("publish.autoCreate") }}
           </label>
 

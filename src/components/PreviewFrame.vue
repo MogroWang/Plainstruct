@@ -56,7 +56,7 @@ watch(reloadKey, () => {
   <iframe
     ref="frame"
     :src="src"
-    class="h-full w-full border-0 bg-white"
+    class="h-full w-full border-0 bg-surface"
     title="site preview"
   />
 </template>

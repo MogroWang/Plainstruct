@@ -444,7 +444,7 @@ async function resetConfig() {
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="copyAskOpen" class="fixed inset-0 z-50 flex items-center justify-center p-6">
-          <div class="absolute inset-0 bg-[rgba(28,25,23,0.32)]" @click="dismissCopyAsk" />
+          <div class="absolute inset-0 bg-[var(--color-scrim)]" @click="dismissCopyAsk" />
           <div class="modal-card panel relative w-full max-w-[380px] shadow-window">
             <header class="px-6 pb-2 pt-5">
               <h2 class="text-[16px] font-semibold">{{ t("theme.modifiedTitle") }}</h2>
@@ -501,7 +501,7 @@ async function resetConfig() {
   padding: 2px 6px;
   border-radius: 4px;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.02em;

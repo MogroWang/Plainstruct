@@ -13,8 +13,11 @@
   --color-accent: #333333;
   --color-accent-strong: #1c1917;
   --color-accent-soft: #eaeae7;
+  /* 强调色/危险色实底上的文字颜色 */
+  --color-on-accent: #ffffff;
   --color-danger: #b3261e;
   --color-danger-soft: #fbf1f0;
+  --color-danger-strong: #99201a;
 
   --radius-md: 6px;
   --radius-lg: 8px;
@@ -24,6 +27,8 @@
 
   --shadow-popover: 0 4px 16px rgba(28, 25, 23, 0.08), 0 1px 3px rgba(28, 25, 23, 0.06);
   --shadow-window: 0 16px 48px rgba(28, 25, 23, 0.18), 0 2px 8px rgba(28, 25, 23, 0.08);
+  /* 模态遮罩 */
+  --color-scrim: rgba(28, 25, 23, 0.32);
 
   --font-sans:
     system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
@@ -41,4 +46,36 @@
   --duration-fast: 120ms;
   --duration-base: 160ms;
   --duration-slow: 220ms;
+  /* 编辑器字体:个性化设置可覆盖 */
+  --font-editor: var(--font-mono);
+  /* 代码语法高亮(克制的语义色) */
+  --code-string: #0f766e;
+  --code-number: #92400e;
+  --code-class: #1d4ed8;
+}
+
+/* ---------- 暗色主题(个性化设置,html[data-theme="dark"] 时生效) ---------- */
+:root[data-theme="dark"] {
+  --color-bg: #171514;
+  --color-surface: #1e1c1a;
+  --color-surface-2: #262421;
+  --color-surface-3: #2d2a27;
+  --color-line: #34302c;
+  --color-line-strong: #46413b;
+  --color-ink: #e7e5e4;
+  --color-ink-2: #a8a29e;
+  --color-ink-3: #78716c;
+  --color-accent: #e7e5e4;
+  --color-accent-strong: #f5f5f4;
+  --color-accent-soft: #2b2825;
+  --color-on-accent: #1c1917;
+  --color-danger: #e8968d;
+  --color-danger-soft: #3b2523;
+  --color-danger-strong: #d4776e;
+  --color-scrim: rgba(0, 0, 0, 0.55);
+  --code-string: #79c0b7;
+  --code-number: #d4a27f;
+  --code-class: #93b5f2;
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-window: 0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
 }

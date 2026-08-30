@@ -50,7 +50,7 @@ function apply() {
   try {
     html = renderPreview(site.config, bundle, site.tree, site.docsCache, first, undefined, app.platform);
   } catch {
-    html = "<p style='font:13px system-ui;padding:16px;color:#b3261e'>模板渲染出错,请检查语法。</p>";
+    html = "<p style='font:13px system-ui;padding:16px;color:var(--color-danger)'>模板渲染出错,请检查语法。</p>";
   }
   doc.open();
   doc.write(html);

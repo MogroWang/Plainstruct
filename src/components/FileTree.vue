@@ -25,14 +25,10 @@ provide("treeCollapsed", collapsed);
 const dropMark = ref<DropMark>(null);
 provide("treeDropMark", dropMark);
 
-/** 过滤根级 index.md(固定首页)与各文件夹的 index.md(作为「文件夹页」,经文件夹行/右键打开),
- *  与构建侧 buildNav 的导航结构保持一致 */
-function pruneIndexPages(nodes: TreeNode[]): TreeNode[] {
-  return nodes
-    .filter((n) => !(n.type === "file" && n.name.toLowerCase() === "index.md"))
-    .map((n) => (n.type === "dir" && n.children ? { ...n, children: pruneIndexPages(n.children) } : n));
-}
-const displayTree = computed(() => pruneIndexPages(site.tree));
+/** 过滤掉根级 index.md(作为独立首页),其余保持不变 */
+const displayTree = computed(() =>
+  site.tree.filter((n) => !(n.type === "file" && n.name.toLowerCase() === "index.md")),
+);
 
 /* ---------- 固定首页入口 ---------- */
 
@@ -50,22 +46,6 @@ async function openHomepage() {
   try {
     await site.createDoc("", "index", t("tree.homeDocTitle"));
     ui.toast(t("tree.homeCreated"), "success");
-  } catch (e) {
-    ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
-  }
-}
-
-/** 编辑文件夹页:已有 index.md 直接打开,没有则创建后进入编辑 */
-async function openFolderPage(node: TreeNode) {
-  const index = (node.children ?? []).find(
-    (c) => c.type === "file" && c.name.toLowerCase() === "index.md",
-  );
-  if (index) {
-    await editor.openDoc(index);
-    return;
-  }
-  try {
-    await site.createDoc(node.path, "index", node.name);
   } catch (e) {
     ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
   }
@@ -334,20 +314,12 @@ function openTreeMenu(e: MouseEvent) {
     },
   ];
   if (node?.type === "dir") {
-    items.push(
-      {
-        id: "editFolderPage",
-        label: t("tree.editFolderPage"),
-        icon: "doc",
-        run: () => void openFolderPage(node),
-      },
-      {
-        id: "import",
-        label: t("tree.importToFolder"),
-        icon: "download",
-        run: () => void onImport(node.path),
-      },
-    );
+    items.push({
+      id: "import",
+      label: t("tree.importToFolder"),
+      icon: "download",
+      run: () => void onImport(node.path),
+    });
   } else if (!node) {
     items.push({
       id: "import",
@@ -578,7 +550,6 @@ async function onTreeDrop(e: DragEvent) {
           @move="onMove"
           @select-click="handleSelectClick"
           @import-to="(dir: string) => onImport(dir)"
-          @edit-page="openFolderPage"
         />
         <!-- 拖到空白处:移动到根目录末尾的指示线 -->
         <div v-if="dropMark?.kind === 'root-end'" class="drop-line-root" aria-hidden="true" />
@@ -600,7 +571,7 @@ async function onTreeDrop(e: DragEvent) {
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="showMoveDialog" class="fixed inset-0 z-50 flex items-center justify-center p-6">
-          <div class="absolute inset-0 bg-[rgba(28,25,23,0.32)]" @click="showMoveDialog = false" />
+          <div class="absolute inset-0 bg-[var(--color-scrim)]" @click="showMoveDialog = false" />
           <div class="modal-card panel relative w-full max-w-[360px] shadow-window">
             <header class="px-6 pb-2 pt-5">
               <h2 class="text-[16px] font-semibold">{{ t("tree.moveToFolder") }}</h2>
@@ -656,7 +627,7 @@ async function onTreeDrop(e: DragEvent) {
 /* 多选模式按钮激活态:实心墨底 */
 .select-btn[aria-pressed="true"] {
   background: var(--color-accent);
-  color: var(--color-surface);
+  color: var(--color-on-accent);
 }
 .select-btn[aria-pressed="true"]:hover {
   background: var(--color-accent-strong);
@@ -667,8 +638,8 @@ async function onTreeDrop(e: DragEvent) {
   position: absolute;
   z-index: 10;
   pointer-events: none;
-  border: 1px solid rgba(28, 25, 23, 0.4);
-  background: rgba(28, 25, 23, 0.06);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 40%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
   border-radius: 3px;
 }
 

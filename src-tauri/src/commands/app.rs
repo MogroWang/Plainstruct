@@ -87,7 +87,7 @@ pub fn get_bootstrap(state: State<'_, AppState>) -> Result<Bootstrap, String> {
         platform: platform.to_string(),
         app_data_dir: state.app_data().to_string_lossy().to_string(),
         settings: if data.settings.is_null() {
-            serde_json::json!({ "locale": "zh-CN", "autosave": true })
+            serde_json::json!({ "locale": "zh-CN", "autosave": true, "theme": "system", "uiFont": "system", "editorFont": "default" })
         } else {
             data.settings
         },

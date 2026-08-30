@@ -68,7 +68,7 @@ async function openRecent(path: string) {
 <template>
   <div class="h-full overflow-y-auto bg-bg">
     <div class="mx-auto flex min-h-full w-full max-w-[480px] flex-col items-center justify-center px-6 py-16">
-      <img src="/logo-full.svg" alt="Plainstruct" class="h-11 select-none" draggable="false" />
+      <img :src="app.isDark ? '/logo-full-dark.svg' : '/logo-full.svg'" alt="Plainstruct" class="h-11 select-none" draggable="false" />
       <p class="mt-6 text-center text-[14px] leading-relaxed text-ink-2">{{ t("app.tagline") }}</p>
 
       <div class="mt-10 flex w-full gap-3">
@@ -119,7 +119,7 @@ async function openRecent(path: string) {
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="showWizard" class="fixed inset-0 z-50 flex items-center justify-center p-6">
-          <div class="absolute inset-0 bg-[rgba(28,25,23,0.32)]" @click="showWizard = false" />
+          <div class="absolute inset-0 bg-[var(--color-scrim)]" @click="showWizard = false" />
           <div class="modal-card panel relative w-full max-w-[440px] shadow-window">
             <header class="px-6 pb-2 pt-5">
               <h2 class="text-[16px] font-semibold">{{ t("wizard.title") }}</h2>

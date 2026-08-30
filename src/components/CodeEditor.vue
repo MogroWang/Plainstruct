@@ -24,14 +24,14 @@ const langComp = new Compartment();
 
 const highlight = HighlightStyle.define([
   { tag: [tg.keyword, tg.moduleKeyword, tg.operatorKeyword], color: "var(--color-ink)", fontWeight: "600" },
-  { tag: [tg.string, tg.special(tg.string)], color: "#0f766e" },
-  { tag: [tg.number, tg.bool], color: "#92400e" },
+  { tag: [tg.string, tg.special(tg.string)], color: "var(--code-string)" },
+  { tag: [tg.number, tg.bool], color: "var(--code-number)" },
   { tag: [tg.comment], color: "var(--color-ink-3)", fontStyle: "italic" },
   { tag: [tg.tagName], color: "var(--color-ink)", fontWeight: "600" },
   { tag: [tg.attributeName], color: "var(--color-ink-2)" },
-  { tag: [tg.attributeValue], color: "#0f766e" },
+  { tag: [tg.attributeValue], color: "var(--code-string)" },
   { tag: [tg.propertyName], color: "var(--color-ink-2)" },
-  { tag: [tg.className], color: "#1d4ed8" },
+  { tag: [tg.className], color: "var(--code-class)" },
   { tag: [tg.variableName], color: "var(--color-ink-2)" },
   { tag: [tg.definition(tg.variableName)], color: "var(--color-ink)" },
   { tag: [tg.punctuation, tg.bracket], color: "var(--color-ink-3)" },

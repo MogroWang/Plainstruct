@@ -127,7 +127,7 @@ export const ipc = {
 
   /* ---------- 主题 ---------- */
   listCustomThemes(): Promise<ThemeMeta[]> {
-    return inTauri ? invoke<ThemeMeta[]>("list_custom_themes") : Promise.resolve([]);
+    return inTauri ? invoke<ThemeMeta[]>("list_custom_themes") : mock.listCustomThemes();
   },
   readThemeFiles(themeId: string): Promise<Record<string, string>> {
     return inTauri

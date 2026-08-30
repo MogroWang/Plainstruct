@@ -3,10 +3,21 @@
 export type Platform = "windows" | "macos" | "browser";
 export type Locale = "zh-CN" | "en-US";
 export type ThemeSource = "builtin" | "custom";
+/** 软件主题:浅色 / 暗色 / 跟随系统 */
+export type AppTheme = "light" | "dark" | "system";
+/** 界面字体模式:系统默认 / 衬线 / 等宽 / 自定义 font-family */
+export type UiFontMode = "system" | "serif" | "mono" | "custom";
+/** 编辑器字体模式:默认等宽 / 跟随界面 / 衬线 / 自定义 font-family */
+export type EditorFontMode = "default" | "ui" | "serif" | "custom";
 
 export interface AppSettings {
   locale: Locale;
   autosave: boolean;
+  theme?: AppTheme;
+  uiFont?: UiFontMode;
+  uiFontCustom?: string;
+  editorFont?: EditorFontMode;
+  editorFontCustom?: string;
 }
 
 export interface RecentSite {

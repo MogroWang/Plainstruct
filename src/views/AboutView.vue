@@ -22,7 +22,7 @@ function goBack() {
 <template>
   <div class="h-full overflow-y-auto bg-bg">
     <div class="mx-auto flex min-h-full w-full max-w-[520px] flex-col items-center justify-center px-6 py-16">
-      <img src="/logo-full.svg" alt="Plainstruct" class="h-12 select-none" draggable="false" />
+      <img :src="app.isDark ? '/logo-full-dark.svg' : '/logo-full.svg'" alt="Plainstruct" class="h-12 select-none" draggable="false" />
 
       <div class="mt-8 flex items-baseline gap-3">
         <h1 class="text-[22px] font-bold tracking-tight">素构 Plainstruct</h1>

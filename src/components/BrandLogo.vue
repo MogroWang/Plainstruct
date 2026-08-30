@@ -1,5 +1,7 @@
 <script setup lang="ts">
-/** 左上角品牌 logo -- 与 public/logo.svg 同一图形(展平为最终坐标),眼睛隔几秒眨一次,并小幅度跟随鼠标 */
+/** 左上角品牌 logo -- 与 public/logo.svg 同一图形(展平为最终坐标)。
+ *  动画:隔几秒眨眼(JS 调度一次性动画,避免中途改 duration 引起相位跳变闪烁)、
+ *  小幅度跟随鼠标、鼠标点按时整体下压回弹 + 眼睛眯起。 */
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
 const props = withDefaults(defineProps<{ size?: number }>(), { size: 20 });
@@ -11,6 +13,9 @@ let targetX = 0;
 let targetY = 0;
 let curX = 0;
 let curY = 0;
+let blinkTimer = 0;
+let pressResetTimer = 0;
+let reduceMotion = false;
 
 function onMove(e: MouseEvent) {
   const svg = svgEl.value;
@@ -20,8 +25,8 @@ function onMove(e: MouseEvent) {
   const unit = 251 / Math.max(r.width, 1);
   const dx = e.clientX - (r.left + r.width / 2);
   const dy = e.clientY - (r.top + r.height / 2);
-  targetX = (Math.max(-1, Math.min(1, dx / 180)) * 1.3 * unit);
-  targetY = (Math.max(-1, Math.min(1, dy / 140)) * 1.0 * unit);
+  targetX = Math.max(-1, Math.min(1, dx / 180)) * 1.3 * unit;
+  targetY = Math.max(-1, Math.min(1, dy / 140)) * 1.0 * unit;
   if (!raf) raf = requestAnimationFrame(tick);
 }
 
@@ -39,30 +44,52 @@ function tick() {
   svgEl.value?.style.setProperty("--eye-y", curY.toFixed(2) + "px");
 }
 
-/** 每次眨眼后随机化下一次间隔(3-6.5s),避免机械感 */
-function onBlinkIteration() {
-  svgEl.value?.style.setProperty("--blink-dur", (3 + Math.random() * 3.5).toFixed(2) + "s");
+/** 眨眼:一次性 class 动画,结束后移除,下一次由定时器重新触发 */
+function blink() {
+  const svg = svgEl.value;
+  if (!svg) return;
+  svg.classList.remove("blinking");
+  void svg.getBoundingClientRect(); // 强制重排,确保 class 重新加回时动画能再次播放
+  svg.classList.add("blinking");
+}
+
+function scheduleBlink() {
+  blinkTimer = window.setTimeout(() => {
+    blink();
+    scheduleBlink();
+  }, 2600 + Math.random() * 3600);
+}
+
+/** 鼠标点按反馈:整体轻压 + 眯眼;动画播放中忽略连点,避免抖动 */
+function onPress() {
+  const svg = svgEl.value;
+  if (!svg || svg.classList.contains("pressed")) return;
+  svg.classList.add("pressed");
+  pressResetTimer = window.setTimeout(() => svg.classList.remove("pressed"), 360);
 }
 
 onMounted(() => {
-  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    window.addEventListener("mousemove", onMove, { passive: true });
-  }
+  reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) return;
+  scheduleBlink();
+  window.addEventListener("mousemove", onMove, { passive: true });
+  window.addEventListener("pointerdown", onPress, { passive: true });
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("mousemove", onMove);
+  window.removeEventListener("pointerdown", onPress);
+  clearTimeout(blinkTimer);
+  clearTimeout(pressResetTimer);
   if (raf) cancelAnimationFrame(raf);
 });
-
-defineExpose({ props });
-void props;
 </script>
 
 <template>
   <!-- 形状与 public/logo.svg 等价:嘴(底横条)、左侧括号、15% 斜杠、双眼 -->
   <svg
     ref="svgEl"
+    class="brand-logo"
     :width="props.size"
     :height="props.size"
     viewBox="0 0 251 243"
@@ -79,7 +106,7 @@ void props;
       fill-opacity="0.15"
     />
     <g class="eye-follow">
-      <g class="eye-blink" @animationiteration="onBlinkIteration">
+      <g class="eye-blink">
         <rect x="89.71" y="0" width="49.04" height="131.92" />
       </g>
     </g>
@@ -92,30 +119,68 @@ void props;
 </template>
 
 <style scoped>
+.brand-logo {
+  transform-origin: center;
+}
+.brand-logo.pressed {
+  animation: logo-press 340ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
 .eye-follow {
-  transform: translate(var(--eye-x, 0), var(--eye-y, 0));
+  transform: translate(var(--eye-x, 0px), var(--eye-y, 0px));
   will-change: transform;
 }
 .eye-blink {
-  animation: eye-blink var(--blink-dur, 4.6s) infinite;
   transform-box: fill-box;
   transform-origin: center;
 }
+.brand-logo.blinking .eye-blink {
+  animation: eye-blink 300ms cubic-bezier(0.3, 0.6, 0.4, 1) both;
+}
+/* 点按反馈优先于眨眼:眯眼幅度略小,像开心地眯起来 */
+.brand-logo.pressed .eye-blink {
+  animation: eye-squint 340ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
 @keyframes eye-blink {
-  0%,
-  92% {
+  0% {
     transform: scaleY(1);
   }
-  94.5% {
-    transform: scaleY(0.08);
+  45% {
+    transform: scaleY(0.06);
   }
-  97%,
   100% {
     transform: scaleY(1);
   }
 }
+@keyframes eye-squint {
+  0% {
+    transform: scaleY(1);
+  }
+  35% {
+    transform: scaleY(0.3);
+  }
+  70% {
+    transform: scaleY(0.45);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+@keyframes logo-press {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.9, 0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .eye-blink {
+  .brand-logo.pressed,
+  .brand-logo.blinking .eye-blink {
     animation: none;
   }
   .eye-follow {

@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAppStore } from "@/stores/app";
 import { ipc } from "@/ipc/ipc";
-import type { Locale } from "@/ipc/types";
+import type { AppTheme, EditorFontMode, Locale, UiFontMode } from "@/ipc/types";
 import AppIcon from "@/components/AppIcon.vue";
 import SelectMenu from "@/components/SelectMenu.vue";
 
@@ -24,11 +24,54 @@ async function onAutosaveToggle() {
   await app.setAutosave(!app.settings.autosave);
 }
 
+/* ---------- 个性化(主题与字体) ---------- */
+
+const themeOptions = computed<{ value: AppTheme; label: string }[]>(() => [
+  { value: "system", label: t("settings.themeSystem") },
+  { value: "light", label: t("settings.themeLight") },
+  { value: "dark", label: t("settings.themeDark") },
+]);
+
+const uiFontOptions = computed<{ value: UiFontMode; label: string }[]>(() => [
+  { value: "system", label: t("settings.fontSystem") },
+  { value: "serif", label: t("settings.fontSerif") },
+  { value: "mono", label: t("settings.fontMono") },
+  { value: "custom", label: t("settings.fontCustom") },
+]);
+
+const editorFontOptions = computed<{ value: EditorFontMode; label: string }[]>(() => [
+  { value: "default", label: t("settings.fontEditorDefault") },
+  { value: "ui", label: t("settings.fontUi") },
+  { value: "serif", label: t("settings.fontSerif") },
+  { value: "custom", label: t("settings.fontCustom") },
+]);
+
+const themeModel = computed({
+  get: () => app.settings.theme ?? "system",
+  set: (v: AppTheme) => void app.setAppearance({ theme: v }),
+});
+const uiFontModel = computed({
+  get: () => app.settings.uiFont ?? "system",
+  set: (v: UiFontMode) => void app.setAppearance({ uiFont: v }),
+});
+const editorFontModel = computed({
+  get: () => app.settings.editorFont ?? "default",
+  set: (v: EditorFontMode) => void app.setAppearance({ editorFont: v }),
+});
+
+function onUiFontCustom(e: Event) {
+  void app.setAppearance({ uiFontCustom: (e.target as HTMLInputElement).value });
+}
+function onEditorFontCustom(e: Event) {
+  void app.setAppearance({ editorFontCustom: (e.target as HTMLInputElement).value });
+}
+
 /* ---------- 左侧分区导航 + 滚动联动 ---------- */
 
 const sections = computed(() => [
   { id: "language", label: t("settings.sectionLanguage") },
   { id: "editor", label: t("settings.sectionEditor") },
+  { id: "personalization", label: t("settings.sectionPersonalization") },
   { id: "about", label: t("settings.sectionAbout") },
 ]);
 
@@ -170,10 +213,67 @@ function openRelease(url: string) {
                 @click="onAutosaveToggle"
               >
                 <span
-                  class="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
+                  class="inline-block h-4 w-4 rounded-full bg-surface shadow-sm transition-transform"
                   :class="app.settings.autosave ? 'translate-x-[22px]' : 'translate-x-[4px]'"
                 />
               </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 个性化 -->
+        <section :ref="setSectionRef('personalization')" class="mb-9">
+          <h3 class="mb-2.5 text-[12.5px] font-semibold uppercase tracking-wider text-ink-3">
+            {{ t("settings.sectionPersonalization") }}
+          </h3>
+          <div class="divide-y divide-line rounded-xl border border-line bg-surface px-4">
+            <!-- 软件主题 -->
+            <div class="settings-row">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">{{ t("settings.theme") }}</p>
+                <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.themeHint") }}</p>
+              </div>
+              <SelectMenu v-model="themeModel" :options="themeOptions" align="right" class="shrink-0" />
+            </div>
+
+            <!-- 界面字体 -->
+            <div class="settings-row">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">{{ t("settings.uiFont") }}</p>
+                <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.uiFontHint") }}</p>
+                <div v-if="uiFontModel === 'custom'" class="mt-2.5">
+                  <input
+                    class="input h-8 w-full max-w-[320px] text-[12.5px]"
+                    type="text"
+                    spellcheck="false"
+                    :placeholder="t('settings.fontCustomPlaceholder')"
+                    :value="app.settings.uiFontCustom ?? ''"
+                    @change="onUiFontCustom"
+                  />
+                  <p class="mt-1 text-[11px] leading-relaxed text-ink-3">{{ t("settings.fontCustomHint") }}</p>
+                </div>
+              </div>
+              <SelectMenu v-model="uiFontModel" :options="uiFontOptions" align="right" class="shrink-0" />
+            </div>
+
+            <!-- 编辑器字体 -->
+            <div class="settings-row">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">{{ t("settings.editorFont") }}</p>
+                <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.editorFontHint") }}</p>
+                <div v-if="editorFontModel === 'custom'" class="mt-2.5">
+                  <input
+                    class="input h-8 w-full max-w-[320px] text-[12.5px]"
+                    type="text"
+                    spellcheck="false"
+                    :placeholder="t('settings.fontCustomPlaceholder')"
+                    :value="app.settings.editorFontCustom ?? ''"
+                    @change="onEditorFontCustom"
+                  />
+                  <p class="mt-1 text-[11px] leading-relaxed text-ink-3">{{ t("settings.fontCustomHint") }}</p>
+                </div>
+              </div>
+              <SelectMenu v-model="editorFontModel" :options="editorFontOptions" align="right" class="shrink-0" />
             </div>
           </div>
         </section>

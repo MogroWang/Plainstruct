@@ -66,7 +66,7 @@ onMounted(() => {
 
       <!-- 启动画面 -->
       <div v-else class="flex flex-1 items-center justify-center">
-        <img src="/logo.svg" alt="" class="h-10 w-10 opacity-70" />
+        <img :src="app.isDark ? '/logo-dark.svg' : '/logo.svg'" alt="" class="h-10 w-10 opacity-70" />
       </div>
     </div>
 

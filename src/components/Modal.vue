@@ -7,7 +7,7 @@ defineProps<{ title: string; width?: number }>();
   <Teleport to="body">
     <div class="fixed inset-0 z-50 flex items-center justify-center p-6">
       <Transition name="scrim" appear>
-        <div class="absolute inset-0 bg-[rgba(28,25,23,0.32)]" @click="$emit('cancel')" />
+        <div class="absolute inset-0 bg-[var(--color-scrim)]" @click="$emit('cancel')" />
       </Transition>
       <Transition name="modal" appear>
         <div

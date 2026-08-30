@@ -69,7 +69,7 @@ async function goToStart() {
           <AppIcon :name="maximized ? 'restore' : 'maximize'" :size="13" />
         </button>
         <button
-          class="btn-icon hover:!bg-danger hover:!text-white"
+          class="btn-icon hover:!bg-danger hover:!text-[var(--color-on-accent)]"
           :title="t('titlebar.close')"
           @click="winAction('close')"
         >
