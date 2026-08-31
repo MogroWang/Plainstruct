@@ -13,11 +13,12 @@ A local-first static wiki site creator. Write Markdown in folders, build with on
 
 ## Features
 
-- **Content management** - tree management of folders and Markdown documents: create (with custom title) / rename / move (drag & drop) / delete (to system trash) / import; multi-select via Shift range and Ctrl/⌘ toggle, batch move by drag & drop, folders auto-expand on hover; drag & drop shows an insertion indicator (row edge = move next to that row's directory, folder middle = move into the folder); dedicated right-click menus for the file tree (new / import / rename / delete) and the editor & inputs (cut / copy / paste / select all)
+- **Content management** - tree management of folders and Markdown documents: create (with custom title) / rename / delete (to system trash) / import; drag & drop moves with an insertion indicator (row edge = move next to that row's directory, folder middle = move into the folder), and dragging to a row's top/bottom edge **manually reorders** (reorder within a directory or insert across directories, multi-selection moves as a group) - the order is saved in `.plainstruct/order.json`, and the built site's navigation, directory pages and prev/next links all follow it; multi-select via Shift range and Ctrl/⌘ toggle, batch move by drag & drop, folders auto-expand on hover; dedicated right-click menus for the file tree (new / import / rename / delete) and the editor & inputs (cut / copy / paste / select all)
 - **Live editing** - CodeMirror 6 editor side-by-side with rendered preview, proportional scroll sync, autosave; a formatting toolbar for headings, bold, italic, strikethrough, quote, lists, link, image, table and code blocks, with keyboard shortcuts and automatic list continuation; the preview shares the exact rendering pipeline with the build - what you see is what you ship
-- **Site settings** - name, description and logo
+- **Site settings** - name, description, logo, site language (written to `<html lang>`, preset or custom locale codes) and browser title format (`{page} · {site}` placeholders); the site logo also serves as the favicon across all pages
 - **One-click build** - output is plain static HTML; every internal link and asset is **relative**, so the site works on GitHub Pages project subpaths, custom domains, or opened from disk; folders without an index.md automatically get a generated directory listing page; a full link check runs at build time and broken links are listed in the report; the standalone preview window remembers its position & size and reloads in place on rebuild
-- **Theme system** - built-in light & dark themes, mobile-friendly (document list collapses into a drawer with a top bar showing the site logo, name and description), optional "Created with Plainstruct" footer credit; visual settings panel (color / number / select / toggle); theme editor with code editing and live preview; themes import & export as ZIP
+- **Theme system** - built-in light & dark themes, mobile-friendly (document list collapses into a drawer with a top bar showing the site logo, name, description and current page path), collapsible sidebar table of contents with cross-page memory, 9 page transition animation presets, optional "Created with Plainstruct" footer credit; visual settings panel (color / number / select / toggle); theme editor with code editing and live preview; themes import & export as ZIP
+- **App appearance** - light / dark / follow-system app themes (dark is a warm-black palette), UI and editor fonts selectable between system default / serif / monospace / custom, applied instantly
 - **GitHub Pages publishing** - pushes the build as a **single atomic commit** via the GitHub API using a personal access token; creates repo / branch / Pages automatically - no Git required
 - **Update check** - one-click check in Settings against the latest GitHub Release, showing the new version, release notes and publish time
 - **Local-first** - all data lives inside the folder you choose; backup = copy; no backend, no telemetry
@@ -31,12 +32,15 @@ Plain (素) structure (构): gray-white palette, a single ink accent, system fon
 
 ### Users
 
-Unzip `release/Plainstruct-x64-portable.zip` (Windows x64 portable build) and run `plainstruct.exe`.
+Download an installer for your platform from [GitHub Releases](https://github.com/MogroWang/Plainstruct/releases):
+
+- **Windows x64** - NSIS installer, or the portable zip (`Plainstruct-x.y.z-Windows-x64-portable.zip`): unzip and run `plainstruct.exe`
+- **macOS (Apple Silicon)** - dmg disk image, drag into Applications. The app is ad-hoc signed and not notarized; if macOS says it is "damaged" or can't verify the developer, run `xattr -cr /Applications/Plainstruct.app` in a terminal, then open it normally
 
 First run:
 
 1. "New site" - pick a name and an empty folder
-2. Create documents in the tree and start writing (documents declare title & order with a `---` front-matter block)
+2. Create documents in the tree and start writing (declare title & description with a `---` front-matter block; drag a document to a row's top/bottom edge to reorder)
 3. Build on the Build page and preview the final site
 4. Pick or customize a theme on the Theme page
 5. Fill in your GitHub username / repo / token on the Publish page and publish
@@ -55,15 +59,16 @@ Create one at [GitHub Settings -> Developer settings -> Personal access tokens](
 │       ├── index.md    # folder landing page (nav folder title comes from its front-matter title)
 │       └── setup.md
 ├── .plainstruct/       # Plainstruct metadata
-│   ├── site.json       # site config (name/description/logo/theme)
+│   ├── site.json       # site config (name/description/logo/theme/language)
 │   ├── github.json     # publish config (contains the token - keep private)
+│   ├── order.json      # manual document order (generated by dragging the tree)
 │   └── themes/         # custom themes
 └── build/              # build output (safe to delete & rebuild)
 ```
 
 **Path mapping**: `index.md -> index.html`, `foo.md -> foo.html`, `foo/index.md -> foo/index.html`. Link between documents with plain relative `.md` paths - they are rewritten to `.html` at build time. Folders without an `index.md` get an auto-generated directory listing page (`<folder>/index.html`) at build time, listing all documents and subfolders; folder titles in the navigation and directory pages are clickable links.
 
-**Front-matter** fields: `title`, `order` (ascending), `description`.
+**Front-matter** fields: `title` and `description`. Document ordering does not rely on front-matter: drag a document to a row's top/bottom edge in the tree to arrange it manually - the order is saved in `.plainstruct/order.json` (the legacy front-matter `order` field no longer affects ordering).
 
 ## Theme development
 
@@ -120,7 +125,7 @@ On the Theme page you can duplicate a built-in theme, edit templates & styles wi
 
 ## Development
 
-Requirements: Node 20+, Rust (MSVC toolchain), and on Windows [VS Build Tools](https://visualstudio.microsoft.com/downloads/) with the C++ workload.
+Requirements: Node 20+ and Rust; on Windows [VS Build Tools](https://visualstudio.microsoft.com/downloads/) with the C++ workload, on macOS the Xcode Command Line Tools (`xcode-select --install`).
 
 ```bash
 npm install          # frontend deps

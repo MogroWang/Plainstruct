@@ -13,11 +13,12 @@
 
 ## 特性
 
-- **内容管理** —— 文件夹与 Markdown 文档的树形管理,新建(可自定义标题)/重命名/移动(拖拽)/删除(进回收站)/导入;支持多选:Shift 范围选择、Ctrl/⌘ 点选、批量拖拽移动,拖过折叠的文件夹稍候自动展开;拖拽带插入位置指示(行边缘 = 移动到该行所在目录,文件夹中部 = 移入该文件夹);文件树、编辑器与输入框均有专属右键菜单(新建/导入/重命名/删除、剪切/复制/粘贴/全选)
+- **内容管理** —— 文件夹与 Markdown 文档的树形管理,新建(可自定义标题)/重命名/删除(进回收站)/导入;拖拽移动带插入位置指示(行边缘 = 移动到该行所在目录,文件夹中部 = 移入该文件夹),拖到目标行上/下边缘即可**手动排序**(同目录重排、跨目录插入到目标位置,多选成组移动),顺序保存在 `.plainstruct/order.json`,构建站点的导航、目录页与上/下篇均按此顺序输出;支持多选:Shift 范围选择、Ctrl/⌘ 点选、批量拖拽移动,拖过折叠的文件夹稍候自动展开;文件树、编辑器与输入框均有专属右键菜单(新建/导入/重命名/删除、剪切/复制/粘贴/全选)
 - **编辑与实时预览** —— CodeMirror 6 编辑器与渲染预览左右对照,比例滚动同步,自动保存;格式工具栏一键插入标题/加粗/斜体/删除线/引用/列表/链接/图片/表格/代码块,附带快捷键与列表自动续行;预览与构建共用同一渲染管线,所见即所得
-- **站点管理** —— 站点名称、描述、Logo 均可配置
+- **站点管理** —— 站点名称、描述、Logo、站点语言(写入 `<html lang>`,可选预设或自定义语言代号)与浏览器标题格式(`{page} · {site}` 占位符)均可配置;站点 Logo 同步作为全站收藏夹图标(favicon)
 - **一键构建** —— 产物为纯静态 HTML;所有站内链接与资源使用**相对路径**,部署到 GitHub Pages 仓库子路径、自定义域名或本地直接打开都不会乱;没有 index.md 的文件夹自动生成目录列表页;构建时全量链接校验,失效链接在报告中列出;独立预览窗口记忆位置与尺寸,构建刷新原地重载
-- **主题系统** —— 内置浅色/暗色两套主题,移动端自适应(文档列表折叠为抽屉面板,顶部栏显示站点 Logo、名称与描述),可选「由 Plainstruct 创建」底部署名;可视化配置面板(颜色/字号/选项/开关);主题制作器(代码编辑 + 实时预览);主题以 ZIP 包导入导出
+- **主题系统** —— 内置浅色/暗色两套主题,移动端自适应(文档列表折叠为抽屉面板,顶栏显示站点 Logo、名称、描述与当前页路径),侧栏目录支持折叠(跨页记忆展开状态),9 种页面过渡动画预设,可选「由 Plainstruct 创建」底部署名;可视化配置面板(颜色/字号/选项/开关);主题制作器(代码编辑 + 实时预览);主题以 ZIP 包导入导出
+- **个性化外观** —— 应用本身支持浅色/暗色/跟随系统三档主题(暗色为暖黑配色),界面与编辑器字体可选系统默认/衬线/等宽/自定义,即改即生效
 - **GitHub Pages 发布** —— 使用个人访问令牌,通过 GitHub API 把构建结果作为**单次原子提交**推送到仓库,自动创建仓库/分支/开启 Pages,无需安装 Git
 - **应用更新检查** —— 设置页一键检查更新,对比 GitHub 最新 Release,提示新版本、发布说明与发布时间
 - **本地优先** —— 所有数据保存在你选择的站点文件夹内,备份即复制;无后端、无遥测
@@ -31,12 +32,15 @@
 
 ### 普通用户
 
-从 `release/Plainstruct-x64-portable.zip` 解压即用(Windows x64 免安装版),双击 `plainstruct.exe`。
+从 [GitHub Releases](https://github.com/MogroWang/Plainstruct/releases) 下载对应平台的安装包:
+
+- **Windows x64**:NSIS 安装包,或免安装版 zip(`Plainstruct-x.y.z-Windows-x64-portable.zip`,解压后双击 `plainstruct.exe`)
+- **macOS(Apple Silicon)**:dmg 磁盘镜像,拖入「应用程序」。应用为 ad-hoc 签名、未经 Apple 公证,首次打开若提示「已损坏」或「无法验证开发者」,在终端执行 `xattr -cr /Applications/Plainstruct.app` 后即可打开
 
 首次使用:
 
 1. 「新建站点」—— 填写站点名称,选择一个空文件夹
-2. 在左侧文件树新建文档,开始写作(文档用 `---` 包裹的 front-matter 声明标题与排序)
+2. 在左侧文件树新建文档,开始写作(用 `---` 包裹的 front-matter 声明标题与描述;把文档拖到目标行的上/下边缘即可排序)
 3. 「构建」页一键构建,即可实时预览最终站点
 4. 「主题」页挑选或定制主题
 5. 「发布」页填入 GitHub 用户名/仓库名/访问令牌,一键发布
@@ -55,15 +59,16 @@
 │       ├── index.md    # 目录落地页(导航里文件夹标题取自它的 title)
 │       └── setup.md
 ├── .plainstruct/       # 素构配置
-│   ├── site.json       # 站点配置(名称/描述/Logo/主题)
+│   ├── site.json       # 站点配置(名称/描述/Logo/主题/语言)
 │   ├── github.json     # 发布配置(含令牌,注意保密)
+│   ├── order.json      # 文档手动排序(拖拽内容树自动生成)
 │   └── themes/         # 自定义主题
 └── build/              # 构建输出(可整删重建)
 ```
 
 **路径映射规则**:`index.md → index.html`、`foo.md → foo.html`、`foo/index.md → foo/index.html`;文档间链接直接写 `.md` 相对路径,构建时自动改写为 `.html`。没有 `index.md` 的文件夹会在构建时自动生成目录列表页(`<目录>/index.html`),列出该文件夹下的全部文档与子目录;导航与目录页中的文件夹标题均可点击跳转。
 
-**Front-matter** 支持三个字段:`title`(标题)、`order`(排序,小在前)、`description`(描述)。
+**Front-matter** 支持 `title`(标题)与 `description`(描述)两个字段。文档排序不依赖 front-matter:在内容树中把文档拖到目标行的上/下边缘即可手动排列,顺序保存在 `.plainstruct/order.json`(旧版 front-matter 的 `order` 字段已不再参与排序)。
 
 ## 主题开发
 
@@ -120,7 +125,7 @@ theme.zip
 
 ## 开发
 
-环境要求:Node 20+、Rust(MSVC 工具链)、Windows 上需 [VS Build Tools](https://visualstudio.microsoft.com/downloads/)(C++ 工作负载)。
+环境要求:Node 20+、Rust;Windows 需 [VS Build Tools](https://visualstudio.microsoft.com/downloads/)(C++ 工作负载),macOS 需 Xcode Command Line Tools(`xcode-select --install`)。
 
 ```bash
 npm install          # 安装前端依赖
@@ -145,7 +150,7 @@ npm run tauri -- build                 # 平台安装包(NSIS / dmg)
 
 ```
 ├── public/                # 应用 Logo:logo.svg(单标)/ logo-full.svg(全字标,含 -dark 暗色变体)
-├── scripts/               # 图标生成 / 免安装打包脚本
+├── scripts/               # 图标生成(含 macOS 满铺图标适配)/ 免安装打包脚本
 ├── src/                   # 前端源码
 │   ├── ipc/               # Tauri IPC 封装 + 浏览器 mock
 │   ├── lib/               # 路径映射 / Markdown / 主题引擎 / 构建管线
