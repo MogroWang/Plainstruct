@@ -6,7 +6,10 @@
  *  重新聚焦后透明度恢复、Zzz 渐隐、缓缓睁眼,继续眨眼与鼠标跟踪。 */
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
-const props = withDefaults(defineProps<{ size?: number }>(), { size: 20 });
+const props = withDefaults(defineProps<{ size?: number; /** 水平注视幅度系数:logo 靠窗口边缘(如 macOS 右上角)时减幅,避免眼神总偏向一侧 */ gazeScaleX?: number }>(), {
+  size: 20,
+  gazeScaleX: 1,
+});
 
 const svgEl = ref<SVGSVGElement | null>(null);
 
@@ -35,7 +38,7 @@ function onMove(e: MouseEvent) {
   const unit = 251 / Math.max(r.width, 1);
   const dx = e.clientX - (r.left + r.width / 2);
   const dy = e.clientY - (r.top + r.height / 2);
-  targetX = Math.max(-1, Math.min(1, dx / 180)) * 1.3 * unit;
+  targetX = Math.max(-1, Math.min(1, dx / 180)) * 1.3 * unit * props.gazeScaleX;
   targetY = Math.max(-1, Math.min(1, dy / 140)) * 1.0 * unit;
   if (!raf) raf = requestAnimationFrame(tick);
 }

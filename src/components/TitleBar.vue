@@ -12,7 +12,8 @@ const site = useSiteStore();
 
 const maximized = ref(false);
 
-const showWindowControls = computed(() => app.platform === "windows" || app.platform === "macos");
+/** 窗口控制按钮仅 Windows/Linux 需要;macOS 使用原生红绿灯(conf: titleBarStyle Overlay) */
+const showWindowControls = computed(() => app.platform === "windows");
 const onMac = computed(() => app.platform === "macos");
 /** 悬停提示「返回主菜单」+ 手型光标:站点打开且不在设置页时可用 */
 const canGoBack = computed(() => site.open && app.view !== "settings");
@@ -43,20 +44,7 @@ async function goToStart() {
     data-tauri-drag-region
     @dblclick="showWindowControls && winAction('toggleMaximize')"
   >
-    <!-- macOS:红绿灯常驻左上角(系统配色,悬停显示符号) -->
-    <div v-if="onMac" class="traffic flex items-center gap-2 pl-1">
-      <button class="traffic-btn traffic-close" :title="t('titlebar.close')" @click="winAction('close')">
-        <AppIcon name="x" :size="8" />
-      </button>
-      <button class="traffic-btn traffic-min" :title="t('titlebar.minimize')" @click="winAction('minimize')">
-        <AppIcon name="minus" :size="8" />
-      </button>
-      <button class="traffic-btn traffic-zoom" :title="t('titlebar.maximize')" @click="winAction('toggleMaximize')">
-        <AppIcon name="maximize" :size="7" />
-      </button>
-    </div>
-
-    <!-- 品牌与路径:Windows 固定左上角;macOS 红绿灯占据左上角,整组移到右上角(logo 在最右,路径显示在 logo 左边) -->
+    <!-- 品牌与路径:Windows 固定左上角;macOS 原生红绿灯占据左上角,整组移到右上角(logo 在最右,路径显示在 logo 左边) -->
     <div
       class="brand flex items-center gap-2"
       :class="[canGoBack && 'can-back cursor-pointer', onMac && 'brand-mac']"
@@ -64,7 +52,7 @@ async function goToStart() {
       @click="goToStart"
     >
       <span class="brand-id flex items-center gap-2">
-        <BrandLogo :size="20" class="shrink-0" />
+        <BrandLogo :size="20" :gaze-scale-x="onMac ? 0.5 : 1" class="shrink-0" />
         <span class="text-[13px] font-semibold tracking-tight">{{ t("app.name") }}</span>
         <span v-if="site.open && site.config" class="text-[13px] text-ink-3">/</span>
         <span v-if="site.open && site.config" class="text-[13px] text-ink-2">{{ site.config.name }}</span>
@@ -77,7 +65,7 @@ async function goToStart() {
     </div>
 
     <!-- Windows:右侧窗口控制按钮 -->
-    <div v-if="showWindowControls && !onMac" class="ml-auto flex items-center gap-1">
+    <div v-if="showWindowControls" class="ml-auto flex items-center gap-1">
       <button class="btn-icon" :title="t('titlebar.minimize')" @click="winAction('minimize')">
         <AppIcon name="minus" :size="14" />
       </button>
@@ -98,38 +86,6 @@ async function goToStart() {
 <style scoped>
 .titlebar button {
   -webkit-app-region: no-drag;
-}
-
-/* macOS 红绿灯:系统三色,悬停整组显示符号 */
-.traffic-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  color: rgba(0, 0, 0, 0.55);
-}
-.traffic-btn svg {
-  opacity: 0;
-  transition: opacity var(--duration-fast) ease;
-}
-.traffic:hover .traffic-btn svg {
-  opacity: 1;
-}
-.traffic-btn:active {
-  filter: brightness(0.82);
-}
-.traffic-close {
-  background: #ff5f57;
-}
-.traffic-min {
-  background: #febc2e;
-}
-.traffic-zoom {
-  background: #28c840;
 }
 
 /* 品牌区悬停:仅站点打开时响应 —— 默认标识滑出,「返回主菜单」以非线性缓动滑入 */

@@ -24,7 +24,9 @@
 
 ### 变更
 
-- macOS 图标适配：`icon.icns` 按系统规范画布重制（1024 画布、内容 824 居中留白），Dock 与访达中的视觉尺寸与其他应用一致；新增 `scripts/gen-mac-icon.py` 可随时重新生成
+- macOS 图标适配 macOS 26+（Tahoe）规范：`icon.icns` 改为满铺（full-bleed）1024×1024 内容，圆角与形状交给系统统一裁切与 Liquid Glass 效果，不再使用 Big Sur 时代自带留白的画布；`scripts/gen-mac-icon.py` 同步更新
+- macOS 窗口改用原生装饰：原生圆角与原生红绿灯控件（`titleBarStyle: Overlay` + 隐藏原生标题，启用 `macos-private-api`），标题栏内容延伸至窗口顶部；Windows/Linux 仍为无边框自绘标题栏
+- macOS 标题栏 Logo 位于右上角时，眼睛水平注视幅度减半（新增 `gazeScaleX` 参数），修正因 logo 贴近窗口右缘导致的视线过度偏左
 - GitHub Actions macOS 构建对 .app 与 dmg 做 ad-hoc 签名，降低无公证应用被 Gatekeeper 判定为「已损坏」的概率；Release 说明改为提供 `xattr -cr /Applications/Plainstruct.app` 解除隔离命令（未公证应用无法完全绕过 Gatekeeper，此为无证书下的最优缓解）
 - 关于页介绍文案更新，移除特性列表（保留技术架构与工作室版权署名）
 - 版本号升级至 1.3.0，内置主题版本同步升级

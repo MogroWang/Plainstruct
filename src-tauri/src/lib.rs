@@ -159,6 +159,13 @@ pub fn run() {
                     *guard = dir;
                 }
             }
+            // 平台窗口装饰:macOS 保留原生圆角与红绿灯(conf 里 titleBarStyle Overlay + hiddenTitle),
+            // 其余平台维持无边框自绘标题栏;窗口初始隐藏,装饰调整完成后再显示,避免启动闪烁
+            if let Some(win) = app.get_webview_window("main") {
+                #[cfg(not(target_os = "macos"))]
+                let _ = win.set_decorations(false);
+                let _ = win.show();
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
