@@ -200,9 +200,33 @@ function ensureInit() {
 
 /* ---------------- 树 ---------------- */
 
-/** 与 Rust 端 walk 一致:目录优先,同级按名称自然排序(顺序固定) */
+type DocOrderMap = Record<string, string[]>;
+
+function orderPath(root: string) {
+  return `${root}/.plainstruct/order.json`;
+}
+
+function readOrder(root: string): DocOrderMap {
+  return readJson<DocOrderMap>(orderPath(root)) ?? {};
+}
+
+/** 与 Rust 端一致:手动顺序在前,未记录项按「目录优先 + 名称自然排序」追加在后 */
+function orderCmp(map: DocOrderMap, dir: string) {
+  const names = map[dir];
+  const pos = names ? new Map(names.map((n, i) => [n, i])) : null;
+  return (a: TreeNode, b: TreeNode) => {
+    const ia = pos?.get(a.name);
+    const ib = pos?.get(b.name);
+    if (ia !== undefined && ib !== undefined) return ia - ib;
+    if (ia !== undefined) return -1;
+    if (ib !== undefined) return 1;
+    if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
+    return treeCollator.compare(a.name, b.name);
+  };
+}
+
+/** 与 Rust 端 walk 一致:同级按手动顺序(order.json),未记录项目录优先、名称自然排序 */
 const treeCollator = new Intl.Collator("zh", { numeric: true, sensitivity: "base" });
-const byName = (a: TreeNode, b: TreeNode) => treeCollator.compare(a.name, b.name);
 
 function buildTree(root: string): TreeNode[] {
   const prefix = `${root}/content/`;
@@ -234,12 +258,13 @@ function buildTree(root: string): TreeNode[] {
     if (parent) parent.children!.push(node);
     else nodes.push(node);
   }
-  const sortTree = (list: TreeNode[]): TreeNode[] => {
-    list.sort(byName);
-    for (const n of list) if (n.children) sortTree(n.children);
+  const order = readOrder(root);
+  const sortTree = (list: TreeNode[], dir: string): TreeNode[] => {
+    list.sort(orderCmp(order, dir));
+    for (const n of list) if (n.children) sortTree(n.children, n.path);
     return list;
   };
-  return sortTree(nodes);
+  return sortTree(nodes, "");
 }
 
 /* ---------------- 命令实现 ---------------- */
@@ -322,6 +347,12 @@ export const mock = {
     return buildTree(currentRoot!);
   },
 
+  async saveDocOrder(dir: string, names: string[]): Promise<void> {
+    const order = readOrder(currentRoot!);
+    order[dir] = names;
+    files.set(orderPath(currentRoot!), JSON.stringify(order, null, 2));
+  },
+
   async readDocs(paths: string[]): Promise<string[]> {
     return paths.map((p) => files.get(`${currentRoot}/content/${p}`) ?? "");
   },
@@ -362,6 +393,20 @@ export const mock = {
         files.delete(key);
       }
     }
+    // 同步手动排序:父目录条目改名;目录改名时其子树的 order 键一并更新
+    const order = readOrder(currentRoot!);
+    const list = order[parent];
+    if (list) order[parent] = list.map((n) => (n === parts[parts.length - 1] ? newName : n));
+    if (isDir) {
+      const dirPrefix = `${path}/`;
+      for (const k of Object.keys(order)) {
+        if (k.startsWith(dirPrefix)) {
+          order[`${newPath}/${k.slice(dirPrefix.length)}`] = order[k];
+          delete order[k];
+        }
+      }
+    }
+    files.set(orderPath(currentRoot!), JSON.stringify(order, null, 2));
     return newPath;
   },
 
@@ -379,6 +424,15 @@ export const mock = {
         files.delete(key);
       }
     }
+    // 同步手动排序:从源目录的顺序中移除;目录移动时清理其子树的 order 键
+    const order = readOrder(currentRoot!);
+    const list = order[parent];
+    if (list) order[parent] = list.filter((n) => n !== name);
+    const dirPrefix = `${src}/`;
+    for (const k of Object.keys(order)) {
+      if (k.startsWith(dirPrefix)) delete order[k];
+    }
+    files.set(orderPath(currentRoot!), JSON.stringify(order, null, 2));
     return newPath;
   },
 
@@ -387,6 +441,17 @@ export const mock = {
     for (const key of [...files.keys()]) {
       if (key === prefix || key.startsWith(`${prefix}/`)) files.delete(key);
     }
+    // 同步手动排序:从父目录的顺序中移除;目录删除时清理其子树的 order 键
+    const parts = path.split("/");
+    const order = readOrder(currentRoot!);
+    const parentDir = parts.slice(0, -1).join("/");
+    const list = order[parentDir];
+    if (list) order[parentDir] = list.filter((n) => n !== parts[parts.length - 1]);
+    const dirPrefix = `${path}/`;
+    for (const k of Object.keys(order)) {
+      if (k.startsWith(dirPrefix)) delete order[k];
+    }
+    files.set(orderPath(currentRoot!), JSON.stringify(order, null, 2));
   },
 
   async importFiles(srcPaths: string[], _destDir: string): Promise<number> {

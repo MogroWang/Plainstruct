@@ -120,6 +120,7 @@ pub fn run() {
             commands::remove_site_logo,
             // 内容
             commands::list_tree,
+            commands::save_doc_order,
             commands::read_docs,
             commands::save_doc,
             commands::create_doc,

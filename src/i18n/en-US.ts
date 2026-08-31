@@ -263,12 +263,7 @@ export default {
   },
   about: {
     title: "About Plainstruct",
-    description: "Write Markdown in local folders, build a static docs site in one click, publish straight to GitHub Pages — no command line, no backend, and your data never leaves the folder.",
-    features: "Features",
-    featureContent: "Manage documents in a file tree with live Markdown preview",
-    featureBuild: "One-click build to a pure static site with relative links",
-    featureTheme: "Built-in light & dark themes, import/export as ZIP",
-    featurePublish: "Publish to GitHub Pages directly, no Git required",
+    description: "Build your own local static documentation site visually, all in one place. Great as an introduction site for your software or project, with customizable themes and optional publishing to GitHub Pages.",
   },
   settings: {
     title: "Settings",

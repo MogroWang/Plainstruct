@@ -14,6 +14,8 @@ const maximized = ref(false);
 
 const showWindowControls = computed(() => app.platform === "windows" || app.platform === "macos");
 const onMac = computed(() => app.platform === "macos");
+/** 悬停提示「返回主菜单」+ 手型光标:站点打开且不在设置页时可用 */
+const canGoBack = computed(() => site.open && app.view !== "settings");
 
 async function winAction(action: "minimize" | "toggleMaximize" | "close") {
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
@@ -26,6 +28,9 @@ async function winAction(action: "minimize" | "toggleMaximize" | "close") {
 }
 
 async function goToStart() {
+  // 设置页不依赖站点(关闭站点后仍停留在设置页),这里返回主菜单会「暗中退出工作区」,
+  // 故在设置页暂时禁用该入口:无悬停提示、点击无动作
+  if (app.view === "settings") return;
   if (site.open) {
     await site.close();
   }
@@ -38,44 +43,54 @@ async function goToStart() {
     data-tauri-drag-region
     @dblclick="showWindowControls && winAction('toggleMaximize')"
   >
-    <!-- macOS 红绿灯占位 -->
-    <div v-if="onMac" class="flex items-center gap-2 pl-1">
-      <button class="btn-icon !h-3 !w-3 !rounded-full" style="background:#e5e3e1" :title="t('titlebar.close')" @click="winAction('close')" />
-      <button class="btn-icon !h-3 !w-3 !rounded-full" style="background:#e5e3e1" :title="t('titlebar.minimize')" @click="winAction('minimize')" />
-      <button class="btn-icon !h-3 !w-3 !rounded-full" style="background:#e5e3e1" :title="t('titlebar.maximize')" @click="winAction('toggleMaximize')" />
+    <!-- macOS:红绿灯常驻左上角(系统配色,悬停显示符号) -->
+    <div v-if="onMac" class="traffic flex items-center gap-2 pl-1">
+      <button class="traffic-btn traffic-close" :title="t('titlebar.close')" @click="winAction('close')">
+        <AppIcon name="x" :size="8" />
+      </button>
+      <button class="traffic-btn traffic-min" :title="t('titlebar.minimize')" @click="winAction('minimize')">
+        <AppIcon name="minus" :size="8" />
+      </button>
+      <button class="traffic-btn traffic-zoom" :title="t('titlebar.maximize')" @click="winAction('toggleMaximize')">
+        <AppIcon name="maximize" :size="7" />
+      </button>
     </div>
 
-    <!-- 仅在站点打开时(点击可返回主菜单)才给予悬停反馈与手型光标 -->
-    <div class="brand flex items-center gap-2" :class="site.open && 'can-back cursor-pointer'" data-tauri-drag-region @click="goToStart">
+    <!-- 品牌与路径:Windows 固定左上角;macOS 红绿灯占据左上角,整组移到右上角(logo 在最右,路径显示在 logo 左边) -->
+    <div
+      class="brand flex items-center gap-2"
+      :class="[canGoBack && 'can-back cursor-pointer', onMac && 'brand-mac']"
+      data-tauri-drag-region
+      @click="goToStart"
+    >
       <span class="brand-id flex items-center gap-2">
         <BrandLogo :size="20" class="shrink-0" />
         <span class="text-[13px] font-semibold tracking-tight">{{ t("app.name") }}</span>
         <span v-if="site.open && site.config" class="text-[13px] text-ink-3">/</span>
         <span v-if="site.open && site.config" class="text-[13px] text-ink-2">{{ site.config.name }}</span>
       </span>
-      <!-- 悬停提示:以非线性缓动浮现的「返回主菜单」 -->
-      <span v-if="site.open" class="brand-back" aria-hidden="true">
+      <!-- 悬停提示:以非线性缓动浮现的「返回主菜单」(设置页中禁用,不显示) -->
+      <span v-if="canGoBack" class="brand-back" aria-hidden="true">
         <AppIcon name="arrowLeft" :size="14" class="brand-back-arrow" />
         <span>{{ t("titlebar.backToMenu") }}</span>
       </span>
     </div>
 
-    <div class="ml-auto flex items-center gap-1">
-      <template v-if="showWindowControls && !onMac">
-        <button class="btn-icon" :title="t('titlebar.minimize')" @click="winAction('minimize')">
-          <AppIcon name="minus" :size="14" />
-        </button>
-        <button class="btn-icon" :title="maximized ? t('titlebar.restore') : t('titlebar.maximize')" @click="winAction('toggleMaximize')">
-          <AppIcon :name="maximized ? 'restore' : 'maximize'" :size="13" />
-        </button>
-        <button
-          class="btn-icon hover:!bg-danger hover:!text-[var(--color-on-accent)]"
-          :title="t('titlebar.close')"
-          @click="winAction('close')"
-        >
-          <AppIcon name="x" :size="14" />
-        </button>
-      </template>
+    <!-- Windows:右侧窗口控制按钮 -->
+    <div v-if="showWindowControls && !onMac" class="ml-auto flex items-center gap-1">
+      <button class="btn-icon" :title="t('titlebar.minimize')" @click="winAction('minimize')">
+        <AppIcon name="minus" :size="14" />
+      </button>
+      <button class="btn-icon" :title="maximized ? t('titlebar.restore') : t('titlebar.maximize')" @click="winAction('toggleMaximize')">
+        <AppIcon :name="maximized ? 'restore' : 'maximize'" :size="13" />
+      </button>
+      <button
+        class="btn-icon hover:!bg-danger hover:!text-[var(--color-on-accent)]"
+        :title="t('titlebar.close')"
+        @click="winAction('close')"
+      >
+        <AppIcon name="x" :size="14" />
+      </button>
     </div>
   </header>
 </template>
@@ -85,9 +100,48 @@ async function goToStart() {
   -webkit-app-region: no-drag;
 }
 
+/* macOS 红绿灯:系统三色,悬停整组显示符号 */
+.traffic-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: rgba(0, 0, 0, 0.55);
+}
+.traffic-btn svg {
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+.traffic:hover .traffic-btn svg {
+  opacity: 1;
+}
+.traffic-btn:active {
+  filter: brightness(0.82);
+}
+.traffic-close {
+  background: #ff5f57;
+}
+.traffic-min {
+  background: #febc2e;
+}
+.traffic-zoom {
+  background: #28c840;
+}
+
 /* 品牌区悬停:仅站点打开时响应 —— 默认标识滑出,「返回主菜单」以非线性缓动滑入 */
 .brand {
   position: relative;
+}
+.brand-mac {
+  margin-left: auto;
+}
+.brand-mac .brand-id {
+  /* macOS:logo 固定在最右上角,路径显示整体排在 logo 左边 */
+  flex-direction: row-reverse;
 }
 .brand-id {
   transition:
@@ -97,6 +151,10 @@ async function goToStart() {
 .brand.can-back:hover .brand-id {
   opacity: 0;
   transform: translateX(-10px);
+}
+/* macOS:内容贴右,滑出与滑入方向镜像 */
+.brand-mac.can-back:hover .brand-id {
+  transform: translateX(10px);
 }
 .brand-back {
   position: absolute;
@@ -114,6 +172,11 @@ async function goToStart() {
   transition:
     opacity var(--duration-base) var(--ease-plain),
     transform var(--duration-slow) var(--ease-plain);
+}
+.brand-mac .brand-back {
+  left: auto;
+  right: 0;
+  transform: translateY(-50%) translateX(-10px);
 }
 .brand.can-back:hover .brand-back {
   opacity: 1;

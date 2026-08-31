@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from "vue";
 import type { TreeNode } from "@/ipc/types";
-import { dirname } from "@/lib/paths";
 import { useEditorStore } from "@/stores/editor";
 import AppIcon from "./AppIcon.vue";
 
@@ -11,7 +10,7 @@ export interface SelectClick {
   shift: boolean;
 }
 
-/** 拖拽落点指示:before/after = 移到该行所在目录,into = 移入该文件夹,root-end = 移到根目录 */
+/** 拖拽落点指示:before/after = 排列到该行前/后(同目录重排,跨目录移动后插入),into = 移入该文件夹,root-end = 移到根目录 */
 export type DropMark =
   | { kind: "before" | "after" | "into"; path: string }
   | { kind: "root-end" }
@@ -31,6 +30,7 @@ const emit = defineEmits<{
   rename: [node: TreeNode];
   remove: [node: TreeNode];
   move: [src: string, destDir: string];
+  reorder: [src: string, target: string, pos: "before" | "after"];
   selectClick: [click: SelectClick];
   importTo: [dir: string];
 }>();
@@ -142,8 +142,12 @@ function onDrop(e: DragEvent) {
   dropMark.value = null;
   const src = e.dataTransfer?.getData("text/plain");
   if (!src) return;
-  const targetDir = dropPos.value === "into" ? props.node.path : dirname(props.node.path);
-  if (src !== targetDir) emit("move", src, targetDir);
+  // 文件夹中部 = 移入;行上/下边缘 = 排列到该行前/后(手动排序)
+  if (dropPos.value === "into") {
+    emit("move", src, props.node.path);
+  } else {
+    emit("reorder", src, props.node.path, dropPos.value);
+  }
 }
 </script>
 
@@ -228,6 +232,7 @@ function onDrop(e: DragEvent) {
           @rename="(n: TreeNode) => emit('rename', n)"
           @remove="(n: TreeNode) => emit('remove', n)"
           @move="(s: string, d: string) => emit('move', s, d)"
+          @reorder="(s: string, t: string, p: 'before' | 'after') => emit('reorder', s, t, p)"
           @select-click="(c: SelectClick) => emit('selectClick', c)"
           @import-to="(d: string) => emit('importTo', d)"
         />

@@ -1,8 +1,10 @@
-/** 内容命令:文件树、文档读写、增删改移、导入 */
+/** 内容命令:文件树、文档读写、增删改移、导入、手动排序 */
 use serde::Serialize;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tauri::State;
 
+use crate::commands::site::plainstruct_dir;
 use crate::fsutil::{is_importable, rel_posix, safe_join, safe_name, unique_path};
 use crate::state::AppState;
 
@@ -22,7 +24,7 @@ fn content_root(root: &PathBuf) -> PathBuf {
 }
 
 /// 自然排序:数字段按数值比较,其余按小写字母比较。
-/// 文档顺序只取决于名称本身,与文件系统返回顺序无关(构建站点与内容页共用该顺序)。
+/// 未被手动排列过的项使用该顺序,与文件系统返回顺序无关。
 fn natural_cmp(a: &str, b: &str) -> std::cmp::Ordering {
     let av: Vec<char> = a.to_lowercase().chars().collect();
     let bv: Vec<char> = b.to_lowercase().chars().collect();
@@ -55,8 +57,72 @@ fn natural_cmp(a: &str, b: &str) -> std::cmp::Ordering {
     (av.len() - i).cmp(&(bv.len() - j))
 }
 
-/// 递归构建内容树:目录优先,同级按名称自然排序(顺序固定)
-fn walk(dir: &PathBuf, rel: &str) -> Vec<TreeNode> {
+/* ---------- 手动排序(order.json) ---------- */
+
+/// 自定义文档顺序:目录相对路径(空串为 content 根)-> 该目录下子项名称的有序列表。
+/// 已记录的项按列表顺序排列;未记录的项按默认规则追加在后,因此新建/导入不打乱既有排列。
+type DocOrderMap = BTreeMap<String, Vec<String>>;
+
+fn order_path(root: &PathBuf) -> PathBuf {
+    plainstruct_dir(root).join("order.json")
+}
+
+fn read_order_map(root: &PathBuf) -> DocOrderMap {
+    std::fs::read_to_string(order_path(root))
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_default()
+}
+
+fn write_order_map(root: &PathBuf, map: &DocOrderMap) -> Result<(), String> {
+    std::fs::create_dir_all(plainstruct_dir(root)).map_err(|e| e.to_string())?;
+    let json = serde_json::to_string_pretty(map).map_err(|e| e.to_string())?;
+    std::fs::write(order_path(root), json).map_err(|e| e.to_string())
+}
+
+/// 就地修改 order.json;无实际变化时不写盘
+fn mutate_order(root: &PathBuf, f: impl FnOnce(&mut DocOrderMap)) -> Result<(), String> {
+    let mut map = read_order_map(root);
+    let before = map.clone();
+    f(&mut map);
+    if map != before {
+        write_order_map(root, &map)?;
+    }
+    Ok(())
+}
+
+fn rel_basename(p: &str) -> &str {
+    p.rsplit('/').next().unwrap_or(p)
+}
+
+fn rel_dirname(p: &str) -> &str {
+    match p.rfind('/') {
+        Some(i) => &p[..i],
+        None => "",
+    }
+}
+
+/// 同级排序:手动顺序在前,未记录项按「目录优先 + 名称自然排序」追加在后
+fn sort_nodes(nodes: &mut Vec<TreeNode>, manual: Option<&Vec<String>>) {
+    match manual {
+        Some(names) => nodes.sort_by(|a, b| {
+            let pa = names.iter().position(|s| s == &a.name);
+            let pb = names.iter().position(|s| s == &b.name);
+            match (pa, pb) {
+                (Some(x), Some(y)) => x.cmp(&y),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => a.node_type.cmp(&b.node_type).then_with(|| natural_cmp(&a.name, &b.name)),
+            }
+        }),
+        None => nodes.sort_by(|a, b| {
+            a.node_type.cmp(&b.node_type).then_with(|| natural_cmp(&a.name, &b.name))
+        }),
+    }
+}
+
+/// 递归构建内容树:同级按手动顺序(order.json),未记录项按默认规则
+fn walk(dir: &PathBuf, rel: &str, order: &DocOrderMap) -> Vec<TreeNode> {
     let mut dirs: Vec<(String, PathBuf)> = Vec::new();
     let mut files: Vec<(String, PathBuf)> = Vec::new();
     let Ok(entries) = std::fs::read_dir(dir) else {
@@ -74,13 +140,11 @@ fn walk(dir: &PathBuf, rel: &str) -> Vec<TreeNode> {
             files.push((name, entry.path()));
         }
     }
-    dirs.sort_by(|a, b| natural_cmp(&a.0, &b.0));
-    files.sort_by(|a, b| natural_cmp(&a.0, &b.0));
 
     let mut nodes = Vec::new();
     for (name, path) in dirs {
         let child_rel = if rel.is_empty() { name.clone() } else { format!("{rel}/{name}") };
-        let children = walk(&path, &child_rel);
+        let children = walk(&path, &child_rel, order);
         nodes.push(TreeNode {
             name,
             path: child_rel,
@@ -97,13 +161,30 @@ fn walk(dir: &PathBuf, rel: &str) -> Vec<TreeNode> {
             children: Vec::new(),
         });
     }
+    sort_nodes(&mut nodes, order.get(rel));
     nodes
 }
 
 #[tauri::command]
 pub fn list_tree(state: State<'_, AppState>) -> Result<Vec<TreeNode>, String> {
     let root = state.site_root()?;
-    Ok(walk(&content_root(&root), ""))
+    let order = read_order_map(&root);
+    Ok(walk(&content_root(&root), "", &order))
+}
+
+/// 保存某个目录下的手动排序(传入该目录全部子项的期望顺序)
+#[tauri::command]
+pub fn save_doc_order(state: State<'_, AppState>, dir: String, names: Vec<String>) -> Result<(), String> {
+    let root = state.site_root()?;
+    if !dir.is_empty() {
+        let full = safe_join(&content_root(&root), &dir)?;
+        if !full.is_dir() {
+            return Err(format!("目录不存在: {dir}"));
+        }
+    }
+    let mut map = read_order_map(&root);
+    map.insert(dir, names);
+    write_order_map(&root, &map)
 }
 
 #[tauri::command]
@@ -177,8 +258,37 @@ pub fn rename_item(state: State<'_, AppState>, path: String, new_name: String) -
     }
     let parent = full.parent().ok_or("非法路径")?.to_path_buf();
     let target = unique_path(&parent.join(safe_name(&new_name)));
+    let is_dir = full.is_dir();
     std::fs::rename(&full, &target).map_err(|e| e.to_string())?;
-    Ok(rel_posix(&content, &target))
+    let new_path = rel_posix(&content, &target);
+
+    // 同步手动排序:父目录条目改名;目录改名时其子树的 order 键一并更新
+    mutate_order(&root, |map| {
+        let parent_key = rel_dirname(&path).to_string();
+        let old_name = rel_basename(&path).to_string();
+        if let Some(list) = map.get_mut(&parent_key) {
+            for n in list.iter_mut() {
+                if *n == old_name {
+                    *n = rel_basename(&new_path).to_string();
+                }
+            }
+        }
+        if is_dir {
+            let prefix = format!("{path}/");
+            let keys: Vec<String> = map
+                .keys()
+                .filter(|k| k.starts_with(prefix.as_str()))
+                .cloned()
+                .collect();
+            for k in keys {
+                let nk = format!("{new_path}/{}", &k[prefix.len()..]);
+                if let Some(v) = map.remove(&k) {
+                    map.insert(nk, v);
+                }
+            }
+        }
+    })?;
+    Ok(new_path)
 }
 
 #[tauri::command]
@@ -206,7 +316,22 @@ pub fn move_item(state: State<'_, AppState>, src: String, dest_dir: String) -> R
     std::fs::create_dir_all(&dest_parent).map_err(|e| e.to_string())?;
     let name = src_full.file_name().ok_or("非法路径")?.to_os_string();
     let target = unique_path(&dest_parent.join(name));
+    let is_dir = src_full.is_dir();
     std::fs::rename(&src_full, &target).map_err(|e| e.to_string())?;
+
+    // 同步手动排序:从源目录的顺序中移除;目录移动时清理其子树的 order 键。
+    // 目标目录不写入,移动项作为「未记录项」排在已有排列之后(或由前端随后写入精确位置)。
+    mutate_order(&root, |map| {
+        let src_parent = rel_dirname(&src).to_string();
+        let src_name = rel_basename(&src).to_string();
+        if let Some(list) = map.get_mut(&src_parent) {
+            list.retain(|n| *n != src_name);
+        }
+        if is_dir {
+            let prefix = format!("{src}/");
+            map.retain(|k, _| !k.starts_with(prefix.as_str()));
+        }
+    })?;
     Ok(rel_posix(&content, &target))
 }
 
@@ -217,7 +342,22 @@ pub fn delete_item(state: State<'_, AppState>, path: String) -> Result<(), Strin
     if !full.exists() {
         return Ok(());
     }
-    trash::delete(&full).map_err(|e| format!("移入回收站失败: {e}"))
+    let is_dir = full.is_dir();
+    trash::delete(&full).map_err(|e| format!("移入回收站失败: {e}"))?;
+
+    // 同步手动排序:从父目录的顺序中移除;目录删除时清理其子树的 order 键
+    mutate_order(&root, |map| {
+        let parent_key = rel_dirname(&path).to_string();
+        let name = rel_basename(&path).to_string();
+        if let Some(list) = map.get_mut(&parent_key) {
+            list.retain(|n| *n != name);
+        }
+        if is_dir {
+            let prefix = format!("{path}/");
+            map.retain(|k, _| !k.starts_with(prefix.as_str()));
+        }
+    })?;
+    Ok(())
 }
 
 #[tauri::command]

@@ -7,7 +7,7 @@ import { useEditorStore } from "@/stores/editor";
 import { useUiStore } from "@/stores/ui";
 import { useContextMenuStore, type MenuItem } from "@/stores/contextMenu";
 import { ipc } from "@/ipc/ipc";
-import { dirname, safeName, stripExt } from "@/lib/paths";
+import { basename, dirname, safeName, stripExt } from "@/lib/paths";
 import AppIcon from "./AppIcon.vue";
 import FileTreeNode, { type DropMark, type SelectClick } from "./FileTreeNode.vue";
 import PromptModal from "./PromptModal.vue";
@@ -421,6 +421,51 @@ async function onMove(src: string, destDir: string) {
   if (moved > 0) clearSelection();
 }
 
+/* ---------- 手动排序(拖到行上/下边缘) ---------- */
+
+/** 某目录(空串为根)下子项的当前显示名称序列 */
+function childNamesOf(dir: string): string[] {
+  const children = dir ? findNodeByPath(dir)?.children ?? [] : site.tree;
+  return children.map((n) => n.name);
+}
+
+/**
+ * 拖到某行的前/后:同目录 = 直接重排;跨目录 = 先移动再把新项插入该行前/后。
+ * 多选拖动时,选中项按显示顺序成组插入,保持彼此相对顺序。
+ */
+async function onReorder(src: string, targetPath: string, pos: "before" | "after") {
+  const dir = dirname(targetPath);
+  const targetName = basename(targetPath);
+  const srcs = expandDragSrcs(src, dir);
+  const movingNames = srcs.map(basename);
+  if (movingNames.includes(targetName)) return;
+
+  try {
+    if (dirname(src) === dir) {
+      const names = childNamesOf(dir);
+      const rest = names.filter((n) => !movingNames.includes(n));
+      const at = rest.indexOf(targetName);
+      if (at < 0) return;
+      rest.splice(pos === "before" ? at : at + 1, 0, ...movingNames);
+      await site.saveOrder(dir, rest);
+    } else {
+      // 跨目录:移动(内部会刷新树),随后把实际落点名称插入目标行前/后
+      const movedNames: string[] = [];
+      for (const s of srcs) {
+        const newPath = await site.moveItem(s, dir);
+        movedNames.push(basename(newPath));
+      }
+      const rest = childNamesOf(dir).filter((n) => !movedNames.includes(n));
+      const at = rest.indexOf(targetName);
+      if (at < 0) return;
+      rest.splice(pos === "before" ? at : at + 1, 0, ...movedNames);
+      await site.saveOrder(dir, rest);
+    }
+  } catch (e) {
+    ui.toast(t("ui.operationFailed", { msg: ipc.errText(e) }), "error");
+  }
+}
+
 /* ---------- 树空白区域的拖放(移动到根目录 / 外部导入) ---------- */
 
 function onTreeDragOver(e: DragEvent) {
@@ -548,6 +593,7 @@ async function onTreeDrop(e: DragEvent) {
           @rename="(n: TreeNode) => (prompt = { mode: 'rename', node: n })"
           @remove="onRemove"
           @move="onMove"
+          @reorder="onReorder"
           @select-click="handleSelectClick"
           @import-to="(dir: string) => onImport(dir)"
         />

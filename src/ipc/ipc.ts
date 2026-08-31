@@ -79,6 +79,10 @@ export const ipc = {
   listTree(): Promise<TreeNode[]> {
     return inTauri ? invoke<TreeNode[]>("list_tree") : mock.listTree();
   },
+  /** 保存某目录下的手动排序(传入该目录全部子项的期望顺序) */
+  saveDocOrder(dir: string, names: string[]): Promise<void> {
+    return inTauri ? invoke<void>("save_doc_order", { dir, names }) : mock.saveDocOrder(dir, names);
+  },
   readDocs(paths: string[]): Promise<string[]> {
     return inTauri ? invoke<string[]>("read_docs", { paths }) : mock.readDocs(paths);
   },

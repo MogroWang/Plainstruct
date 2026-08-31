@@ -7,13 +7,6 @@ import AppIcon from "@/components/AppIcon.vue";
 const { t } = useI18n();
 const app = useAppStore();
 
-const featureKeys = [
-  "about.featureContent",
-  "about.featureBuild",
-  "about.featureTheme",
-  "about.featurePublish",
-] as const;
-
 function goBack() {
   app.setView("editor");
 }
@@ -34,14 +27,6 @@ function goBack() {
 
       <div class="mt-10 w-full rounded-xl border border-line bg-surface p-6">
         <p class="text-[13.5px] leading-relaxed text-ink-2">{{ t("about.description") }}</p>
-
-        <h2 class="field-label mt-6 mb-3 !text-[12px]">{{ t("about.features") }}</h2>
-        <ul class="flex flex-col gap-2">
-          <li v-for="key in featureKeys" :key="key" class="flex items-start gap-2 text-[13px] text-ink-2">
-            <AppIcon name="check" :size="13" class="mt-[3px] shrink-0 text-ink-3" />
-            <span>{{ t(key) }}</span>
-          </li>
-        </ul>
 
         <div class="mt-6 flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-5 text-[12.5px] text-ink-3">
           <span>Vue 3 · TypeScript · Tauri 2</span>

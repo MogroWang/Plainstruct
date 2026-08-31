@@ -14,12 +14,16 @@ const site = useSiteStore();
 const ui = useUiStore();
 const app = useAppStore();
 
+/** 预设之外的语言代号走「自定义」输入框 */
+const CUSTOM_LOCALE = "__custom__";
+
 const languageOptions = [
   { value: "zh-CN", label: "简体中文" },
   { value: "en-US", label: "English" },
+  { value: CUSTOM_LOCALE, label: t("site.languageCustom") },
 ];
 
-const form = reactive({ name: "", description: "", locale: "zh-CN", titleFormat: "" });
+const form = reactive({ name: "", description: "", locale: "zh-CN", customLocale: "", titleFormat: "" });
 const saving = ref(false);
 const pickingLogo = ref(false);
 
@@ -29,7 +33,10 @@ watch(
     if (cfg) {
       form.name = cfg.name;
       form.description = cfg.description ?? "";
-      form.locale = cfg.locale ?? "zh-CN";
+      // 已保存的语言不在预设中时,显示为「自定义」并回填代号
+      const known = languageOptions.some((o) => o.value === cfg.locale);
+      form.locale = cfg.locale && known ? cfg.locale : cfg.locale ? CUSTOM_LOCALE : "zh-CN";
+      form.customLocale = cfg.locale && !known ? cfg.locale : "";
       form.titleFormat = cfg.titleFormat ?? "";
     }
   },
@@ -45,7 +52,8 @@ async function save() {
     await site.saveConfig({
       name: form.name.trim(),
       description: form.description.trim() || undefined,
-      locale: form.locale || undefined,
+      locale:
+        form.locale === CUSTOM_LOCALE ? form.customLocale.trim() || undefined : form.locale,
       titleFormat: form.titleFormat.trim() || undefined,
     });
     ui.toast(t("site.saved"), "success");
@@ -115,6 +123,14 @@ function openFolder() {
           <div>
             <label class="field-label">{{ t("site.language") }}</label>
             <SelectMenu v-model="form.locale" :options="languageOptions" align="left" />
+            <input
+              v-if="form.locale === CUSTOM_LOCALE"
+              v-model="form.customLocale"
+              class="input mt-2 h-8 w-full max-w-[220px] text-[12.5px]"
+              type="text"
+              spellcheck="false"
+              :placeholder="t('site.languageCustomPlaceholder')"
+            />
             <p class="field-hint">{{ t("site.languageHint") }}</p>
           </div>
           <div>

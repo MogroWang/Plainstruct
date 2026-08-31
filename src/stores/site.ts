@@ -102,6 +102,32 @@ export const useSiteStore = defineStore("site", {
       }
     },
 
+    /**
+     * 手动排序:落盘某目录的子项顺序,并把本地树同步重排为「记录项在前,其余保持原有相对顺序」,
+     * 与 Rust 端 walk 的排序语义一致,无需整树刷新。
+     */
+    async saveOrder(dir: string, names: string[]) {
+      await ipc.saveDocOrder(dir, names);
+      const apply = (nodes: TreeNode[], parent: string): TreeNode[] => {
+        if (parent !== dir) {
+          return nodes.map((n) => (n.type === "dir" ? { ...n, children: apply(n.children ?? [], n.path) } : n));
+        }
+        const pos = new Map(names.map((n, i) => [n, i]));
+        return [...nodes]
+          .map((n, i) => ({ n, i }))
+          .sort((a, b) => {
+            const ia = pos.get(a.n.name);
+            const ib = pos.get(b.n.name);
+            if (ia !== undefined && ib !== undefined) return ia - ib;
+            if (ia !== undefined) return -1;
+            if (ib !== undefined) return 1;
+            return a.i - b.i;
+          })
+          .map((x) => x.n);
+      };
+      this.tree = apply(this.tree, "");
+    },
+
     async loadDocs() {
       const paths = collectDocPaths(this.tree);
       if (!paths.length) {

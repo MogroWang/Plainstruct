@@ -263,12 +263,7 @@ export default {
   },
   about: {
     title: "关于素构",
-    description: "在本地文件夹里写 Markdown,一键构建成静态文档站,直接发布到 GitHub Pages——无需命令行与后端,数据全部留在你自己的文件夹里。",
-    features: "特性",
-    featureContent: "文件树管理文档,Markdown 实时预览",
-    featureBuild: "一键构建为纯静态站点,链接保持相对路径",
-    featureTheme: "内置浅色/暗色主题,可导入导出 ZIP",
-    featurePublish: "免 Git,直接发布到 GitHub Pages",
+    description: "可视化一站式搞定你自己的本地静态文档站点。适合用于为你的软件或项目做一个介绍网站,支持定制化主题,并且还额外支持发布到 GitHub Pages。",
   },
   settings: {
     title: "软件设置",
