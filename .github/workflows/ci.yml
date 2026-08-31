@@ -60,10 +60,10 @@ jobs:
         run: npm run windows:portable
         shell: powershell
 
-      # macOS arm64:仅构建 dmg
-      - name: Build Tauri bundle (macOS arm64 dmg)
+      # macOS arm64:同时构建 .app 与 dmg(--bundles dmg 单独使用时 .app 不落盘,无法签名)
+      - name: Build Tauri bundle (macOS arm64 app + dmg)
         if: runner.os == 'macOS'
-        run: npm run tauri -- build --bundles dmg
+        run: npm run tauri -- build --bundles app,dmg
 
       # ad-hoc 重签 .app 与 dmg:无 Apple 开发者证书无法公证,但有效的 ad-hoc 签名
       # 可避免 Gatekeeper 把应用直接判定为「已损坏」(未签名会触发更严重的拦截)。
@@ -71,9 +71,11 @@ jobs:
       - name: Ad-hoc sign macOS bundle
         if: runner.os == 'macOS'
         run: |
-          codesign --force --deep --sign - src-tauri/target/release/bundle/macos/*.app
+          for app in src-tauri/target/release/bundle/macos/*.app; do
+            if [ -e "$app" ]; then codesign --force --deep --sign - "$app"; fi
+          done
           for f in src-tauri/target/release/bundle/dmg/*.dmg; do
-            codesign --force --sign - "$f"
+            if [ -e "$f" ]; then codesign --force --sign - "$f"; fi
           done
 
       - name: Upload Windows installer artifact
