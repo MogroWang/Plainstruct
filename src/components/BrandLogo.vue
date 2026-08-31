@@ -10,8 +10,9 @@ const props = withDefaults(defineProps<{ size?: number }>(), { size: 20 });
 
 const svgEl = ref<SVGSVGElement | null>(null);
 
-/** 清醒 → 转头张望(drowsing)→ 入睡(sleeping);聚焦后回到 awake,CSS 过渡负责睁眼与变淡恢复 */
-type LogoState = "awake" | "drowsing" | "sleeping";
+/** 清醒 → 转头张望(drowsing)→ 入睡(sleeping);聚焦后先 waking(透明度恢复、Zzz 渐隐,眼睛仍闭着),
+ *  随后才回到 awake 睁开眼睛并恢复眨眼与鼠标跟踪。 */
+type LogoState = "awake" | "drowsing" | "sleeping" | "waking";
 const logoState = ref<LogoState>("awake");
 
 let raf = 0;
@@ -78,11 +79,10 @@ function onPress() {
   pressResetTimer = window.setTimeout(() => svg.classList.remove("pressed"), 360);
 }
 
-/** 窗口聚焦状态:失焦 → 张望后入睡;聚焦 → 唤醒 */
+/** 窗口聚焦状态:失焦 → 张望后入睡;聚焦 → 先恢复气色再睁眼 */
 function setAwake(focused: boolean) {
   clearTimeout(sleepTimer);
   if (!focused) {
-    if (logoState.value !== "awake") return;
     svgEl.value?.classList.remove("blinking");
     clearTimeout(blinkTimer);
     // 眼神回正,不再跟踪鼠标
@@ -93,15 +93,31 @@ function setAwake(focused: boolean) {
       logoState.value = "sleeping";
       return;
     }
-    logoState.value = "drowsing"; // 转头来回看一看
+    // 唤醒途中再度失焦:直接睡下
+    if (logoState.value === "awake") logoState.value = "drowsing";
+    else if (logoState.value === "waking") logoState.value = "sleeping";
     sleepTimer = window.setTimeout(() => {
       if (logoState.value === "drowsing") logoState.value = "sleeping";
     }, 980);
   } else {
     if (logoState.value === "awake") return;
-    // 移除状态类后由 CSS 过渡完成:透明度恢复、Zzz 渐隐、缓缓睁眼
-    logoState.value = "awake";
-    if (!reduceMotion) scheduleBlink();
+    if (reduceMotion) {
+      logoState.value = "awake";
+      return;
+    }
+    if (logoState.value === "drowsing") {
+      // 还没睡着,直接回醒
+      logoState.value = "awake";
+      return;
+    }
+    // 先让透明度恢复、Zzz 渐隐(眼睛保持闭合),随后才睁眼并恢复眨眼循环
+    logoState.value = "waking";
+    sleepTimer = window.setTimeout(() => {
+      if (logoState.value === "waking") {
+        logoState.value = "awake";
+        if (!reduceMotion) scheduleBlink();
+      }
+    }, 900);
   }
 }
 
@@ -233,7 +249,9 @@ onBeforeUnmount(() => {
 .brand-logo.pressed .eye-blink {
   animation: eye-squint 340ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
-.sleeping .eye-blink {
+/* 睡着与苏醒中眼睛都保持闭合;进入 awake 后由过渡缓缓睁开 */
+.sleeping .eye-blink,
+.waking .eye-blink {
   transform: scaleY(0.08);
 }
 
