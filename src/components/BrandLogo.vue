@@ -73,6 +73,11 @@ function scheduleBlink() {
   }, 2600 + Math.random() * 3600);
 }
 
+/** 确保眨眼循环在跑:blinkTimer === 0 表示当前无循环(被失焦清理或尚未启动) */
+function ensureBlinkLoop() {
+  if (!reduceMotion && blinkTimer === 0) scheduleBlink();
+}
+
 /** 鼠标点按反馈:整体轻压 + 眯眼;动画播放中忽略连点,避免抖动 */
 function onPress() {
   if (logoState.value !== "awake") return;
@@ -88,6 +93,7 @@ function setAwake(focused: boolean) {
   if (!focused) {
     svgEl.value?.classList.remove("blinking");
     clearTimeout(blinkTimer);
+    blinkTimer = 0;
     // 眼神回正,不再跟踪鼠标
     targetX = 0;
     targetY = 0;
@@ -103,7 +109,11 @@ function setAwake(focused: boolean) {
       if (logoState.value === "drowsing") logoState.value = "sleeping";
     }, 980);
   } else {
-    if (logoState.value === "awake") return;
+    if (logoState.value === "awake") {
+      // 已经清醒:确保眨眼循环在跑(自愈启动期被误清的循环)
+      ensureBlinkLoop();
+      return;
+    }
     if (reduceMotion) {
       logoState.value = "awake";
       return;
@@ -111,6 +121,7 @@ function setAwake(focused: boolean) {
     if (logoState.value === "drowsing") {
       // 还没睡着,直接回醒
       logoState.value = "awake";
+      ensureBlinkLoop();
       return;
     }
     // 先让透明度恢复、Zzz 渐隐(眼睛保持闭合),随后才睁眼并恢复眨眼循环
@@ -118,7 +129,7 @@ function setAwake(focused: boolean) {
     sleepTimer = window.setTimeout(() => {
       if (logoState.value === "waking") {
         logoState.value = "awake";
-        if (!reduceMotion) scheduleBlink();
+        ensureBlinkLoop();
       }
     }, 900);
   }
@@ -131,8 +142,11 @@ async function watchWindowFocus() {
       const win = getCurrentWindow();
       unlisten.push(await win.listen("tauri://focus", () => setAwake(true)));
       unlisten.push(await win.listen("tauri://blur", () => setAwake(false)));
-      // 启动时窗口可能已处于未聚焦状态
-      setAwake(await win.isFocused());
+      // 启动期窗口焦点尚未建立、focus 事件也可能早于监听注册,
+      // 稍候再做一次初始校正,避免误判入睡后无人唤醒
+      window.setTimeout(() => {
+        void win.isFocused().then(setAwake);
+      }, 350);
     } catch {
       /* 焦点事件不可用时保持清醒态 */
     }
@@ -151,7 +165,7 @@ async function watchWindowFocus() {
 onMounted(() => {
   reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!reduceMotion) {
-    scheduleBlink();
+    ensureBlinkLoop();
     window.addEventListener("mousemove", onMove, { passive: true });
     window.addEventListener("pointerdown", onPress, { passive: true });
   }

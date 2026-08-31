@@ -22,11 +22,17 @@ SRC = ROOT / "src-tauri" / "icons" / "icon.png"
 OUT = ROOT / "src-tauri" / "icons" / "icon.icns"
 
 CANVAS = 1024
+# icon.png 的底色(浅暖灰);用于填实其自带圆角的透明角
+BG = (231, 229, 228, 255)
 
 src = Image.open(SRC).convert("RGBA")
-canvas = src.resize((CANVAS, CANVAS), Image.LANCZOS)
+content = src.resize((CANVAS, CANVAS), Image.LANCZOS)
 # 源为 512px 时上采样,轻微锐化补偿软边
-canvas = canvas.filter(ImageFilter.UnsharpMask(radius=1.4, percent=55, threshold=2))
+content = content.filter(ImageFilter.UnsharpMask(radius=1.4, percent=55, threshold=2))
+# macOS 26 要求资产完全不透明满铺:自带圆角的透明角会被系统判定为「未适配」,
+# 从而在图标下垫玻璃底板(表现为白色边框)。铺一层同色底即可无缝填实。
+canvas = Image.new("RGBA", (CANVAS, CANVAS), BG)
+canvas.alpha_composite(content)
 
 # icns 条目:ic07(128) ic08(256) ic09(512) ic10(512@2x=1024)
 #           ic11(16@2x=32) ic12(32@2x=64) ic13(128@2x=256) ic14(256@2x=512)
