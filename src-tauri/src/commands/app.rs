@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::State;
 
-use crate::state::AppState;
+use crate::state::{ensure_main, AppState};
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -73,7 +73,8 @@ pub fn touch_recent(state: &AppState, name: &str, path: &str) {
 }
 
 #[tauri::command]
-pub fn get_bootstrap(state: State<'_, AppState>) -> Result<Bootstrap, String> {
+pub fn get_bootstrap(state: State<'_, AppState>, window: tauri::WebviewWindow) -> Result<Bootstrap, String> {
+    ensure_main(&window)?;
     let data = read_app_data(&state);
     let platform = if cfg!(target_os = "windows") {
         "windows"
@@ -96,8 +97,13 @@ pub fn get_bootstrap(state: State<'_, AppState>) -> Result<Bootstrap, String> {
 }
 
 #[tauri::command]
-pub fn save_settings(state: State<'_, AppState>, patch: Value) -> Result<Value, String> {
+pub fn save_settings(state: State<'_, AppState>, window: tauri::WebviewWindow, patch: Value) -> Result<Value, String> {
+    ensure_main(&window)?;
     let mut data = read_app_data(&state);
+    // 全新安装时 app.json 不存在,settings 反序列化为 Null,先规范化为空对象
+    if data.settings.is_null() {
+        data.settings = serde_json::json!({});
+    }
     let obj = data.settings.as_object_mut().ok_or("settings 损坏")?;
     if let Some(patch_obj) = patch.as_object() {
         for (k, v) in patch_obj {
@@ -109,8 +115,10 @@ pub fn save_settings(state: State<'_, AppState>, patch: Value) -> Result<Value, 
 }
 
 #[tauri::command]
-pub fn log_frontend(msg: String) {
+pub fn log_frontend(window: tauri::WebviewWindow, msg: String) -> Result<(), String> {
+    ensure_main(&window)?;
     println!("[frontend] {msg}");
+    Ok(())
 }
 
 /* ---------- 检查更新:对比 GitHub 最新 Release 与当前版本 ---------- */
@@ -145,7 +153,8 @@ fn is_newer(latest: &str, current: &str) -> bool {
 }
 
 #[tauri::command]
-pub async fn check_update() -> Result<UpdateInfo, String> {
+pub async fn check_update(window: tauri::WebviewWindow) -> Result<UpdateInfo, String> {
+    ensure_main(&window)?;
     let current = env!("CARGO_PKG_VERSION").to_string();
     let client = reqwest::Client::builder()
         .user_agent(concat!("plainstruct/", env!("CARGO_PKG_VERSION")))

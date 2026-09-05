@@ -7,7 +7,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::commands::build::collect_build_files;
 use crate::events::SYNC_PROGRESS;
-use crate::state::AppState;
+use crate::state::{ensure_main, AppState};
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -87,7 +87,8 @@ fn repo_api(cfg: &GithubConfig, suffix: &str) -> String {
 }
 
 #[tauri::command]
-pub async fn github_read_config(state: State<'_, AppState>) -> Result<GithubConfig, String> {
+pub async fn github_read_config(window: tauri::WebviewWindow, state: State<'_, AppState>) -> Result<GithubConfig, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let path = root.join(".plainstruct").join("github.json");
     match std::fs::read_to_string(&path) {
@@ -103,7 +104,8 @@ pub async fn github_read_config(state: State<'_, AppState>) -> Result<GithubConf
 }
 
 #[tauri::command]
-pub fn github_save_config(state: State<'_, AppState>, cfg: GithubConfig) -> Result<(), String> {
+pub fn github_save_config(window: tauri::WebviewWindow, state: State<'_, AppState>, cfg: GithubConfig) -> Result<(), String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let dir = root.join(".plainstruct");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
@@ -112,7 +114,8 @@ pub fn github_save_config(state: State<'_, AppState>, cfg: GithubConfig) -> Resu
 }
 
 #[tauri::command]
-pub async fn github_verify(state: State<'_, AppState>, cfg: GithubConfig) -> Result<VerifyResult, String> {
+pub async fn github_verify(window: tauri::WebviewWindow, state: State<'_, AppState>, cfg: GithubConfig) -> Result<VerifyResult, String> {
+    ensure_main(&window)?;
     let http = state.http.clone();
     if cfg.token.is_empty() {
         return Ok(VerifyResult {
@@ -181,10 +184,12 @@ fn pages_url(cfg: &GithubConfig) -> String {
 
 #[tauri::command]
 pub async fn github_sync(
+    window: tauri::WebviewWindow,
     app: AppHandle,
     state: State<'_, AppState>,
     cfg: GithubConfig,
 ) -> Result<SyncResult, String> {
+    ensure_main(&window)?;
     if cfg.token.is_empty() || cfg.owner.is_empty() || cfg.repo.is_empty() {
         return Err("请先填写用户名、仓库名与访问令牌".into());
     }

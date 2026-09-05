@@ -173,7 +173,19 @@ function transformLines(fn: (line: string, index: number, lines: string[]) => st
   const next = lines.map(fn);
   if (next.every((l, i) => l === lines[i])) return;
   const insert = next.join("\n");
-  commit(first.from, last.to, insert, first.from + insert.length, first.from + insert.length);
+  // 行变换不改变行数,按原选区的行列位置映射到新文本,避免光标跳到块尾
+  const newLines = insert.split("\n");
+  const starts: number[] = [];
+  let acc = first.from;
+  for (const l of newLines) {
+    starts.push(acc);
+    acc += l.length + 1;
+  }
+  const anchorLine = state.doc.lineAt(range.anchor);
+  const headLine = state.doc.lineAt(range.head);
+  const anchor = starts[anchorLine.number - first.number] + Math.min(range.anchor - anchorLine.from, newLines[anchorLine.number - first.number].length);
+  const head = starts[headLine.number - first.number] + Math.min(range.head - headLine.from, newLines[headLine.number - first.number].length);
+  commit(first.from, last.to, insert, anchor, head);
 }
 
 function toggleBullet() {
@@ -287,9 +299,10 @@ function insertTable() {
   const head1 = t("editor.toolbar.tableHeader");
   const cell = t("editor.toolbar.tableCell");
   const header = `| ${head1} | ${head1} | ${head1} |`;
-  const insert = `${line.text.trim() ? "\n" : ""}${header}\n| --- | --- | --- |\n| ${cell} | ${cell} | ${cell} |`;
+  const lead = line.text.trim() ? 1 : 0; // 非空行时 insert 以换行开头
+  const insert = `${lead ? "\n" : ""}${header}\n| --- | --- | --- |\n| ${cell} | ${cell} | ${cell} |`;
   const from = line.to;
-  const anchor = from + 2;
+  const anchor = from + lead + 2;
   commit(from, from, insert, anchor, anchor + head1.length);
 }
 

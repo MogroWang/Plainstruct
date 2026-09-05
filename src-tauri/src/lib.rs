@@ -39,11 +39,16 @@ fn mime_for(path: &str) -> &'static str {
     }
 }
 
+/// site:// 页面的内容安全策略:允许同站与 https 外链资源,禁止向外部发起
+/// fetch/WebSocket(connect-src),防止构建产物中的不可信脚本外带数据。
+const SITE_CSP: &str = "default-src 'self' site:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src * data: site:; font-src * data: https:; connect-src 'self' site:; object-src 'none'; base-uri 'none'";
+
 fn serve_response(status: StatusCode, mime: &str, body: Vec<u8>) -> Response<Cow<'static, [u8]>> {
     Response::builder()
         .status(status)
         .header("Content-Type", mime)
         .header("Cache-Control", "no-store")
+        .header("Content-Security-Policy", SITE_CSP)
         .body(Cow::Owned(body))
         .unwrap()
 }
@@ -69,6 +74,12 @@ fn handle_site<R: tauri::Runtime>(
     let mut rel = decoded.trim_start_matches('/').trim_end_matches('/').to_string();
     if rel.is_empty() {
         rel = "build/index.html".into();
+    }
+
+    // 拒绝隐藏文件/目录(以 . 开头的路径段):.plainstruct 存放站点配置(可能含
+    // GitHub Token),不应通过预览协议暴露给构建产物中的不可信脚本
+    if rel.split('/').any(|seg| seg.starts_with('.')) {
+        return serve_response(StatusCode::FORBIDDEN, "text/plain; charset=utf-8", b"forbidden".to_vec());
     }
 
     let full = match fsutil::safe_join(&root, &rel) {

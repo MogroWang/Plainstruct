@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Plainstruct 主窗口默认权限",
-  "windows": ["main", "site-preview"],
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "core:window:allow-minimize",
@@ -13,7 +13,6 @@
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:window:allow-set-focus",
-    "core:webview:allow-create-webview",
     "core:webview:allow-create-webview-window",
     "core:webview:allow-webview-close",
     "core:webview:allow-get-all-webviews",

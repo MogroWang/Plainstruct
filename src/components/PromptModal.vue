@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import Modal from "./Modal.vue";
 
@@ -15,11 +15,16 @@ const props = defineProps<{
 const emit = defineEmits<{ confirm: [value: string]; cancel: [] }>();
 const { t } = useI18n();
 const value = ref("");
+const inputRef = ref<HTMLInputElement>();
 
 watch(
   () => props.open,
   (open) => {
-    if (open) value.value = props.initial ?? "";
+    if (open) {
+      value.value = props.initial ?? "";
+      // autofocus 在 Teleport 弹层中不可靠,显式聚焦
+      void nextTick(() => inputRef.value?.focus());
+    }
   },
 );
 

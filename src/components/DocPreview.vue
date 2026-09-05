@@ -125,9 +125,12 @@ defineExpose({ scrollToRatio });
 </script>
 
 <template>
+  <!-- sandbox 保留同源(宿主可写入/滚动/拦截点击),但禁用其中脚本:
+       markdown 裸 HTML 与主题 JS 不在应用特权上下文执行 -->
   <iframe
     ref="frame"
     class="doc-preview h-full w-full border-0"
     title="preview"
+    sandbox="allow-same-origin"
   />
 </template>

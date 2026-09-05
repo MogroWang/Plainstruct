@@ -17,6 +17,8 @@ interface State {
   autoRebuild: boolean;
   /** 每次构建完成后自增,预览 iframe 以此刷新 */
   previewNonce: number;
+  /** 构建进行中收到保存请求,结束后需补一次重建 */
+  pendingRebuild: boolean;
 }
 
 let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
@@ -28,6 +30,7 @@ export const useBuilderStore = defineStore("builder", {
     error: null,
     autoRebuild: true,
     previewNonce: 0,
+    pendingRebuild: false,
   }),
 
   actions: {
@@ -55,6 +58,11 @@ export const useBuilderStore = defineStore("builder", {
         ui.toast(this.error, "error");
       } finally {
         this.building = false;
+        // 构建期间若有文档保存,补一次重建,避免该次改动被跳过
+        if (this.pendingRebuild) {
+          this.pendingRebuild = false;
+          void this.build();
+        }
       }
     },
 
@@ -98,7 +106,12 @@ export const useBuilderStore = defineStore("builder", {
 
     /** 文档保存后:已构建过则防抖重建 */
     onDocSaved() {
-      if (!this.autoRebuild || !this.report || this.building) return;
+      if (!this.autoRebuild || !this.report) return;
+      // 构建进行中先记待办,构建结束后自动补一次
+      if (this.building) {
+        this.pendingRebuild = true;
+        return;
+      }
       if (rebuildTimer) clearTimeout(rebuildTimer);
       rebuildTimer = setTimeout(() => {
         void this.build();

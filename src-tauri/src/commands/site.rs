@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::commands::app::touch_recent;
-use crate::state::AppState;
+use crate::state::{ensure_main, AppState};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -74,11 +74,13 @@ fn write_site_config_file(root: &PathBuf, cfg: &SiteConfig) -> Result<(), String
 
 #[tauri::command]
 pub fn create_site(
+    window: tauri::WebviewWindow,
     state: State<'_, AppState>,
     dir: String,
     name: String,
     description: Option<String>,
 ) -> Result<SiteConfig, String> {
+    ensure_main(&window)?;
     let root = PathBuf::from(&dir);
     if plainstruct_dir(&root).exists() {
         return Err("occupied".into());
@@ -116,7 +118,8 @@ pub fn create_site(
 }
 
 #[tauri::command]
-pub fn open_site(state: State<'_, AppState>, dir: String) -> Result<SiteConfig, String> {
+pub fn open_site(window: tauri::WebviewWindow, state: State<'_, AppState>, dir: String) -> Result<SiteConfig, String> {
+    ensure_main(&window)?;
     let root = PathBuf::from(&dir);
     let cfg = read_site_config_file(&root)?;
     *state.site_root.lock().map_err(|e| e.to_string())? = Some(root);
@@ -125,18 +128,21 @@ pub fn open_site(state: State<'_, AppState>, dir: String) -> Result<SiteConfig, 
 }
 
 #[tauri::command]
-pub fn close_site(state: State<'_, AppState>) -> Result<(), String> {
+pub fn close_site(window: tauri::WebviewWindow, state: State<'_, AppState>) -> Result<(), String> {
+    ensure_main(&window)?;
     *state.site_root.lock().map_err(|e| e.to_string())? = None;
     Ok(())
 }
 
 #[tauri::command]
-pub fn get_site_root(state: State<'_, AppState>) -> Result<String, String> {
+pub fn get_site_root(window: tauri::WebviewWindow, state: State<'_, AppState>) -> Result<String, String> {
+    ensure_main(&window)?;
     Ok(state.site_root()?.to_string_lossy().to_string())
 }
 
 #[tauri::command]
-pub fn read_site_config(state: State<'_, AppState>) -> Result<SiteConfig, String> {
+pub fn read_site_config(window: tauri::WebviewWindow, state: State<'_, AppState>) -> Result<SiteConfig, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     read_site_config_file(&root)
 }
@@ -159,7 +165,8 @@ pub struct SiteConfigPatch {
 }
 
 #[tauri::command]
-pub fn save_site_config(state: State<'_, AppState>, patch: SiteConfigPatch) -> Result<SiteConfig, String> {
+pub fn save_site_config(window: tauri::WebviewWindow, state: State<'_, AppState>, patch: SiteConfigPatch) -> Result<SiteConfig, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let existing = read_site_config_file(&root)?;
     let cfg = SiteConfig {
@@ -188,7 +195,8 @@ pub fn save_site_config(state: State<'_, AppState>, patch: SiteConfigPatch) -> R
 }
 
 #[tauri::command]
-pub fn set_site_logo(state: State<'_, AppState>, src_path: String) -> Result<String, String> {
+pub fn set_site_logo(window: tauri::WebviewWindow, state: State<'_, AppState>, src_path: String) -> Result<String, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let src = PathBuf::from(&src_path);
     let ext = src
@@ -212,7 +220,8 @@ pub fn set_site_logo(state: State<'_, AppState>, src_path: String) -> Result<Str
 }
 
 #[tauri::command]
-pub fn remove_site_logo(state: State<'_, AppState>) -> Result<SiteConfig, String> {
+pub fn remove_site_logo(window: tauri::WebviewWindow, state: State<'_, AppState>) -> Result<SiteConfig, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let mut cfg = read_site_config_file(&root)?;
     if let Some(logo) = cfg.logo.clone() {

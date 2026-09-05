@@ -135,6 +135,7 @@ export default {
     language: "站点语言",
     languageHint: "生成网页的语言标记,便于搜索引擎与朗读工具识别。",
     languageCustom: "自定义",
+    languageCustomPlaceholder: "如 fr、es-MX",
     titleFormat: "浏览器标题格式",
     titleFormatPlaceholder: "{'{'}page{'}'} · {'{'}site{'}'}",
     titleFormatHint: "用 {'{'}page{'}'} 表示页面标题、{'{'}site{'}'} 表示站点名称,例如 {'{'}page{'}'} · {'{'}site{'}'}、{'{'}page{'}'} - {'{'}site{'}'}。留空使用默认连接符「·」。",

@@ -101,5 +101,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <iframe ref="frame" class="theme-preview h-full w-full border-0" title="theme preview" />
+  <!-- sandbox 保留同源(宿主可写入),但禁用其中脚本:
+       第三方主题模板与 JS 不在应用特权上下文执行 -->
+  <iframe ref="frame" class="theme-preview h-full w-full border-0" title="theme preview" sandbox="allow-same-origin" />
 </template>

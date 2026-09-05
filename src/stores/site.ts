@@ -174,8 +174,10 @@ export const useSiteStore = defineStore("site", {
       const newPath = await ipc.renameItem(path, newName);
       await this.refreshTree();
       const editor = useEditorStore();
-      if (editor.activePath === path) {
-        editor.activePath = newPath;
+      const active = editor.activePath;
+      // 重命名目录时,连同其子树内的当前文档路径一并重映射
+      if (active && (active === path || active.startsWith(`${path}/`))) {
+        editor.activePath = newPath + active.slice(path.length);
       }
       return newPath;
     },
@@ -184,8 +186,10 @@ export const useSiteStore = defineStore("site", {
       const newPath = await ipc.moveItem(src, destDir);
       await this.refreshTree();
       const editor = useEditorStore();
-      if (editor.activePath === src) {
-        editor.activePath = newPath;
+      const active = editor.activePath;
+      // 移动目录时,连同其子树内的当前文档路径一并重映射
+      if (active && (active === src || active.startsWith(`${src}/`))) {
+        editor.activePath = newPath + active.slice(src.length);
       }
       return newPath;
     },
@@ -193,7 +197,9 @@ export const useSiteStore = defineStore("site", {
     async deleteItem(path: string) {
       await ipc.deleteItem(path);
       const editor = useEditorStore();
-      if (editor.activePath === path) editor.reset();
+      const active = editor.activePath;
+      // 删除的目录包含当前文档时重置编辑器,避免幽灵路径被 autosave 复活
+      if (active && (active === path || active.startsWith(`${path}/`))) editor.reset();
       await this.refreshTree();
     },
 

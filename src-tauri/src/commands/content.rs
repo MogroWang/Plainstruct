@@ -6,7 +6,7 @@ use tauri::State;
 
 use crate::commands::site::plainstruct_dir;
 use crate::fsutil::{is_importable, rel_posix, safe_join, safe_name, unique_path};
-use crate::state::AppState;
+use crate::state::{ensure_main, AppState};
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -166,7 +166,8 @@ fn walk(dir: &PathBuf, rel: &str, order: &DocOrderMap) -> Vec<TreeNode> {
 }
 
 #[tauri::command]
-pub fn list_tree(state: State<'_, AppState>) -> Result<Vec<TreeNode>, String> {
+pub fn list_tree(window: tauri::WebviewWindow, state: State<'_, AppState>) -> Result<Vec<TreeNode>, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let order = read_order_map(&root);
     Ok(walk(&content_root(&root), "", &order))
@@ -174,7 +175,8 @@ pub fn list_tree(state: State<'_, AppState>) -> Result<Vec<TreeNode>, String> {
 
 /// 保存某个目录下的手动排序(传入该目录全部子项的期望顺序)
 #[tauri::command]
-pub fn save_doc_order(state: State<'_, AppState>, dir: String, names: Vec<String>) -> Result<(), String> {
+pub fn save_doc_order(window: tauri::WebviewWindow, state: State<'_, AppState>, dir: String, names: Vec<String>) -> Result<(), String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     if !dir.is_empty() {
         let full = safe_join(&content_root(&root), &dir)?;
@@ -188,7 +190,8 @@ pub fn save_doc_order(state: State<'_, AppState>, dir: String, names: Vec<String
 }
 
 #[tauri::command]
-pub fn read_docs(state: State<'_, AppState>, paths: Vec<String>) -> Result<Vec<String>, String> {
+pub fn read_docs(window: tauri::WebviewWindow, state: State<'_, AppState>, paths: Vec<String>) -> Result<Vec<String>, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let content = content_root(&root);
     let mut out = Vec::with_capacity(paths.len());
@@ -201,7 +204,8 @@ pub fn read_docs(state: State<'_, AppState>, paths: Vec<String>) -> Result<Vec<S
 }
 
 #[tauri::command]
-pub fn save_doc(state: State<'_, AppState>, path: String, content: String) -> Result<(), String> {
+pub fn save_doc(window: tauri::WebviewWindow, state: State<'_, AppState>, path: String, content: String) -> Result<(), String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let full = safe_join(&content_root(&root), &path)?;
     if let Some(parent) = full.parent() {
@@ -212,11 +216,13 @@ pub fn save_doc(state: State<'_, AppState>, path: String, content: String) -> Re
 
 #[tauri::command]
 pub fn create_doc(
+    window: tauri::WebviewWindow,
     state: State<'_, AppState>,
     dir: String,
     name: String,
     title: Option<String>,
 ) -> Result<String, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let content = content_root(&root);
     let parent = if dir.is_empty() { content.clone() } else { safe_join(&content, &dir)? };
@@ -239,7 +245,8 @@ pub fn create_doc(
 }
 
 #[tauri::command]
-pub fn create_folder(state: State<'_, AppState>, parent: String, name: String) -> Result<String, String> {
+pub fn create_folder(window: tauri::WebviewWindow, state: State<'_, AppState>, parent: String, name: String) -> Result<String, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let content = content_root(&root);
     let parent_dir = if parent.is_empty() { content.clone() } else { safe_join(&content, &parent)? };
@@ -249,7 +256,8 @@ pub fn create_folder(state: State<'_, AppState>, parent: String, name: String) -
 }
 
 #[tauri::command]
-pub fn rename_item(state: State<'_, AppState>, path: String, new_name: String) -> Result<String, String> {
+pub fn rename_item(window: tauri::WebviewWindow, state: State<'_, AppState>, path: String, new_name: String) -> Result<String, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let content = content_root(&root);
     let full = safe_join(&content, &path)?;
@@ -292,7 +300,8 @@ pub fn rename_item(state: State<'_, AppState>, path: String, new_name: String) -
 }
 
 #[tauri::command]
-pub fn move_item(state: State<'_, AppState>, src: String, dest_dir: String) -> Result<String, String> {
+pub fn move_item(window: tauri::WebviewWindow, state: State<'_, AppState>, src: String, dest_dir: String) -> Result<String, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let content = content_root(&root);
     let src_full = safe_join(&content, &src)?;
@@ -301,10 +310,9 @@ pub fn move_item(state: State<'_, AppState>, src: String, dest_dir: String) -> R
     }
     let dest_parent = if dest_dir.is_empty() { content.clone() } else { safe_join(&content, &dest_dir)? };
 
-    // 禁止把目录移动进自身子树
-    let src_str = format!("{}", src_full.to_string_lossy());
-    let dest_str = format!("{}", dest_parent.to_string_lossy());
-    if dest_str.starts_with(&src_str) {
+    // 禁止把目录移动进自身或自身子树(strip_prefix 按路径组件比较,
+    // 避免字符串前缀判断把「a 移入同级目录 ab」误判为移入自身)
+    if dest_parent.strip_prefix(&src_full).is_ok() {
         return Err("invalid-move".into());
     }
 
@@ -336,7 +344,8 @@ pub fn move_item(state: State<'_, AppState>, src: String, dest_dir: String) -> R
 }
 
 #[tauri::command]
-pub fn delete_item(state: State<'_, AppState>, path: String) -> Result<(), String> {
+pub fn delete_item(window: tauri::WebviewWindow, state: State<'_, AppState>, path: String) -> Result<(), String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let full = safe_join(&content_root(&root), &path)?;
     if !full.exists() {
@@ -361,7 +370,8 @@ pub fn delete_item(state: State<'_, AppState>, path: String) -> Result<(), Strin
 }
 
 #[tauri::command]
-pub fn import_files(state: State<'_, AppState>, src_paths: Vec<String>, dest_dir: String) -> Result<u32, String> {
+pub fn import_files(window: tauri::WebviewWindow, state: State<'_, AppState>, src_paths: Vec<String>, dest_dir: String) -> Result<u32, String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let content = content_root(&root);
     let dest_parent = if dest_dir.is_empty() { content.clone() } else { safe_join(&content, &dest_dir)? };

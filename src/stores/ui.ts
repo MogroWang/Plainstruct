@@ -23,6 +23,12 @@ interface State {
 let toastId = 0;
 let confirmResolver: ((ok: boolean) => void) | null = null;
 
+/** 结算当前未决的确认框(有新框覆盖或用户选择时调用) */
+function settleConfirm(ok: boolean) {
+  confirmResolver?.(ok);
+  confirmResolver = null;
+}
+
 export const useUiStore = defineStore("ui", {
   state: (): State => ({
     toasts: [],
@@ -40,6 +46,8 @@ export const useUiStore = defineStore("ui", {
 
     /** 弹出确认框,返回用户选择 */
     confirmDialog(opts: ConfirmState): Promise<boolean> {
+      // 新确认框覆盖旧的:被覆盖的未决调用以「取消」收尾,避免 Promise 永不 resolve
+      settleConfirm(false);
       this.confirm = opts;
       return new Promise((resolve) => {
         confirmResolver = resolve;
@@ -47,8 +55,7 @@ export const useUiStore = defineStore("ui", {
     },
 
     resolveConfirm(ok: boolean) {
-      confirmResolver?.(ok);
-      confirmResolver = null;
+      settleConfirm(ok);
       this.confirm = null;
     },
   },

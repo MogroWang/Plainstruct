@@ -135,6 +135,7 @@ export default {
     language: "Site language",
     languageHint: "Language tag for generated pages, used by search engines and screen readers.",
     languageCustom: "Custom",
+    languageCustomPlaceholder: "e.g. fr, es-MX",
     titleFormat: "Browser title format",
     titleFormatPlaceholder: "{'{'}page{'}'} · {'{'}site{'}'}",
     titleFormatHint: "Use {'{'}page{'}'} for the page title and {'{'}site{'}'} for the site name, e.g. {'{'}page{'}'} · {'{'}site{'}'} or {'{'}page{'}'} - {'{'}site{'}'}. Leave empty for the default “·”.",

@@ -20,6 +20,10 @@ interface State {
 }
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+/** 在飞保存的 Promise:保存期间到达的新请求等它结束后重试 */
+let savingPromise: Promise<void> = Promise.resolve();
+/** openDoc 请求序号:快速连续打开文档时只让最后一次请求生效 */
+let openSeq = 0;
 
 export const useEditorStore = defineStore("editor", {
   state: (): State => ({
@@ -46,14 +50,18 @@ export const useEditorStore = defineStore("editor", {
     reset() {
       if (autosaveTimer) clearTimeout(autosaveTimer);
       autosaveTimer = null;
+      openSeq++; // 使在飞的 openDoc 结果过期
       this.$reset();
     },
 
     async openDoc(node: TreeNode) {
       const app = useAppStore();
       if (app.view !== "editor") app.setView("editor");
+      const seq = ++openSeq;
       if (this.dirty) await this.save();
       const [text] = await ipc.readDocs([node.path]);
+      // 等待期间用户已打开其他文档或重置:丢弃过期结果,避免内容错乱
+      if (seq !== openSeq) return;
       this.activePath = node.path;
       this.content = text ?? "";
       this.savedContent = text ?? "";
@@ -72,15 +80,26 @@ export const useEditorStore = defineStore("editor", {
     },
 
     async save() {
-      if (!this.activePath || this.content === this.savedContent || this.saving) return;
+      if (!this.activePath || this.content === this.savedContent) return;
+      // 已有保存在飞:等它结束后再存一次,保证飞行期间的输入也被落盘
+      if (this.saving) {
+        await savingPromise;
+        return this.save();
+      }
+      const path = this.activePath;
+      const text = this.content;
+      let resolveSaving!: () => void;
+      savingPromise = new Promise<void>((r) => (resolveSaving = r));
       this.saving = true;
       try {
-        await ipc.saveDoc(this.activePath, this.content);
-        this.savedContent = this.content;
-        useSiteStore().updateDocCache(this.activePath, this.content);
+        await ipc.saveDoc(path, text);
+        // 写入快照而非当前 content:保存期间继续输入的内容保持 dirty,由重试落盘
+        if (this.activePath === path) this.savedContent = text;
+        useSiteStore().updateDocCache(path, text);
         useBuilderStore().onDocSaved();
       } finally {
         this.saving = false;
+        resolveSaving();
       }
     },
 

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::fsutil::{rel_posix, safe_join};
-use crate::state::AppState;
+use crate::state::{ensure_main, AppState};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,7 +24,8 @@ fn build_root(root: &PathBuf) -> PathBuf {
 }
 
 #[tauri::command]
-pub fn clear_build(state: State<'_, AppState>) -> Result<(), String> {
+pub fn clear_build(window: tauri::WebviewWindow, state: State<'_, AppState>) -> Result<(), String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let build = build_root(&root);
     if build.exists() {
@@ -34,7 +35,8 @@ pub fn clear_build(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn write_build_files(state: State<'_, AppState>, files: Vec<OutputFile>) -> Result<(), String> {
+pub fn write_build_files(window: tauri::WebviewWindow, state: State<'_, AppState>, files: Vec<OutputFile>) -> Result<(), String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     let build = build_root(&root);
     std::fs::create_dir_all(&build).map_err(|e| e.to_string())?;
@@ -71,7 +73,8 @@ fn copy_recursive(src: &PathBuf, dest: &PathBuf) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn copy_paths(state: State<'_, AppState>, items: Vec<CopyItem>) -> Result<(), String> {
+pub fn copy_paths(window: tauri::WebviewWindow, state: State<'_, AppState>, items: Vec<CopyItem>) -> Result<(), String> {
+    ensure_main(&window)?;
     let root = state.site_root()?;
     // dest 相对 build/ 落盘:构建出的页面以 build/ 为根引用资源(图片、站点 logo 等)
     let build = build_root(&root);
