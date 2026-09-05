@@ -79,7 +79,7 @@ export const useEditorStore = defineStore("editor", {
       }, 900);
     },
 
-    async save() {
+    async save(): Promise<void> {
       if (!this.activePath || this.content === this.savedContent) return;
       // 已有保存在飞:等它结束后再存一次,保证飞行期间的输入也被落盘
       if (this.saving) {
