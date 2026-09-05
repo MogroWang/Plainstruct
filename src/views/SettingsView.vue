@@ -3,7 +3,8 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAppStore } from "@/stores/app";
 import { ipc } from "@/ipc/ipc";
-import type { AppTheme, EditorFontMode, Locale, UiFontMode } from "@/ipc/types";
+import type { EditorFontMode, Locale, UiFontMode } from "@/ipc/types";
+import { APP_THEMES, type AppThemeSwatch } from "@/lib/app-themes";
 import AppIcon from "@/components/AppIcon.vue";
 import SelectMenu from "@/components/SelectMenu.vue";
 
@@ -26,11 +27,30 @@ async function onAutosaveToggle() {
 
 /* ---------- 个性化(主题与字体) ---------- */
 
-const themeOptions = computed<{ value: AppTheme; label: string }[]>(() => [
-  { value: "system", label: t("settings.themeSystem") },
-  { value: "light", label: t("settings.themeLight") },
-  { value: "dark", label: t("settings.themeDark") },
-]);
+/** 跟随系统的预览色板:浅色/深色对半拼接,线条与文字用两侧均可读的中性色 */
+const DUAL_SWATCH: AppThemeSwatch = {
+  bg: "linear-gradient(102deg, #fafaf9 49.7%, #171514 50.3%)",
+  panel: "linear-gradient(102deg, #efedec 49.7%, #2d2a27 50.3%)",
+  line: "#c9c3be",
+  text: "rgba(115, 108, 102, 0.65)",
+  accent: "rgba(115, 108, 102, 0.85)",
+};
+
+/** 把色板注入 mini 预览的局部 CSS 变量 */
+function miniVars(s: AppThemeSwatch): Record<string, string> {
+  return {
+    "--sw-bg": s.bg,
+    "--sw-panel": s.panel,
+    "--sw-line": s.line,
+    "--sw-text": s.text,
+    "--sw-accent": s.accent,
+  };
+}
+
+const themeModel = computed({
+  get: () => app.settings.theme ?? "system",
+  set: (v: (typeof APP_THEMES)[number]["id"]) => void app.setAppearance({ theme: v }),
+});
 
 const uiFontOptions = computed<{ value: UiFontMode; label: string }[]>(() => [
   { value: "system", label: t("settings.fontSystem") },
@@ -46,10 +66,6 @@ const editorFontOptions = computed<{ value: EditorFontMode; label: string }[]>((
   { value: "custom", label: t("settings.fontCustom") },
 ]);
 
-const themeModel = computed({
-  get: () => app.settings.theme ?? "system",
-  set: (v: AppTheme) => void app.setAppearance({ theme: v }),
-});
 const uiFontModel = computed({
   get: () => app.settings.uiFont ?? "system",
   set: (v: UiFontMode) => void app.setAppearance({ uiFont: v }),
@@ -211,13 +227,32 @@ function openRelease(url: string) {
                 {{ t("settings.sectionPersonalization") }}
               </h3>
               <div class="settings-card">
-                <!-- 软件主题 -->
-                <div class="settings-row" style="--i: 0">
-                  <div class="min-w-0">
-                    <p class="text-[13.5px] font-medium">{{ t("settings.theme") }}</p>
-                    <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.themeHint") }}</p>
+                <!-- 软件主题:配色预览网格,点选即换 -->
+                <div class="settings-block" style="--i: 0">
+                  <p class="text-[13.5px] font-medium">{{ t("settings.theme") }}</p>
+                  <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.themeHint") }}</p>
+                  <div class="theme-grid">
+                    <button
+                      v-for="th in APP_THEMES"
+                      :key="th.id"
+                      class="theme-card"
+                      :class="{ active: themeModel === th.id }"
+                      @click="themeModel = th.id"
+                    >
+                      <span class="theme-mini" :style="miniVars(th.dual ? DUAL_SWATCH : th.swatch)">
+                        <span class="mini-side" />
+                        <span class="mini-main">
+                          <span class="mini-line" />
+                          <span class="mini-line thin" />
+                          <span class="mini-chip" />
+                        </span>
+                      </span>
+                      <span class="theme-card-name">
+                        {{ t(th.labelKey) }}
+                        <AppIcon v-if="themeModel === th.id" name="check" :size="12" />
+                      </span>
+                    </button>
                   </div>
-                  <SelectMenu v-model="themeModel" :options="themeOptions" align="right" class="shrink-0" />
                 </div>
 
                 <!-- 界面字体 -->
@@ -434,5 +469,96 @@ function openRelease(url: string) {
 }
 .settings-row + .settings-row {
   border-top: 1px solid var(--color-line);
+}
+
+/* 纵向设置块(配色预览网格):与设置行共享分隔线节奏 */
+.settings-block {
+  padding: 15px 0 14px;
+}
+.settings-block + .settings-row,
+.settings-row + .settings-block {
+  border-top: 1px solid var(--color-line);
+}
+
+/* 软件主题:配色预览卡片网格 */
+.theme-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+}
+.theme-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-surface);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-base) var(--ease-plain),
+    box-shadow var(--duration-base) var(--ease-plain);
+}
+.theme-card:hover {
+  border-color: var(--color-line-strong);
+}
+.theme-card.active {
+  border-color: var(--color-ink);
+  box-shadow: inset 0 0 0 0.5px var(--color-ink);
+}
+.theme-card-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--color-ink-2);
+}
+.theme-card.active .theme-card-name {
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+/* mini 配色预览:小窗口示意(背景 / 侧栏 / 正文行 / 强调块) */
+.theme-mini {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid var(--sw-line);
+  border-radius: 5px;
+  background: var(--sw-bg);
+}
+.mini-side {
+  width: 26%;
+  border-right: 1px solid var(--sw-line);
+  background: var(--sw-panel);
+}
+.mini-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 7px;
+}
+.mini-line {
+  height: 2px;
+  width: 78%;
+  border-radius: 1px;
+  background: var(--sw-text);
+  opacity: 0.75;
+}
+.mini-line.thin {
+  width: 52%;
+  opacity: 0.4;
+}
+.mini-chip {
+  height: 5px;
+  width: 38%;
+  border-radius: 2px;
+  background: var(--sw-accent);
 }
 </style>

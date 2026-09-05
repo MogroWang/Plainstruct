@@ -1,0 +1,43 @@
+{
+  "id": "ink",
+  "name": "墨阅",
+  "version": "1.4.0",
+  "author": "MogroWang Studio",
+  "description": "报刊衬线风:纸面留白,墨色排印,朱砂点睛。",
+  "config": [
+    {
+      "key": "accentColor",
+      "label": "强调色",
+      "type": "color",
+      "default": "#9a3324"
+    },
+    {
+      "key": "contentWidth",
+      "label": "正文宽度(px)",
+      "type": "number",
+      "default": 720,
+      "min": 600,
+      "max": 900,
+      "step": 20
+    },
+    {
+      "key": "dropCap",
+      "label": "首段首字下沉",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "key": "pageTransition",
+      "label": "页面过渡动画",
+      "type": "select",
+      "default": "淡入上浮",
+      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现", "滑入", "弹性浮现", "模糊聚焦", "翻页", "揭开"]
+    },
+    {
+      "key": "showFooterCredit",
+      "label": "在底部显示由 Plainstruct 创建",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}

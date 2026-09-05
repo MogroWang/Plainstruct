@@ -11,6 +11,21 @@ import darkLayout from "./plain-dark/templates/layout.hbs?raw";
 import darkPage from "./plain-dark/templates/page.hbs?raw";
 import darkNav from "./plain-dark/partials/nav.hbs?raw";
 import darkCss from "./plain-dark/assets/style.css?raw";
+import inkMeta from "./ink/theme.json";
+import inkLayout from "./ink/templates/layout.hbs?raw";
+import inkPage from "./ink/templates/page.hbs?raw";
+import inkNav from "./ink/partials/nav.hbs?raw";
+import inkCss from "./ink/assets/style.css?raw";
+import terminalMeta from "./terminal/theme.json";
+import terminalLayout from "./terminal/templates/layout.hbs?raw";
+import terminalPage from "./terminal/templates/page.hbs?raw";
+import terminalNav from "./terminal/partials/nav.hbs?raw";
+import terminalCss from "./terminal/assets/style.css?raw";
+import galleryMeta from "./gallery/theme.json";
+import galleryLayout from "./gallery/templates/layout.hbs?raw";
+import galleryPage from "./gallery/templates/page.hbs?raw";
+import galleryNav from "./gallery/partials/nav.hbs?raw";
+import galleryCss from "./gallery/assets/style.css?raw";
 
 export const builtinThemes: ThemeBundle[] = [
   {
@@ -31,6 +46,36 @@ export const builtinThemes: ThemeBundle[] = [
       "templates/page.hbs": darkPage,
       "partials/nav.hbs": darkNav,
       "assets/style.css": darkCss,
+    },
+  },
+  {
+    meta: { ...(inkMeta as unknown as ThemeMeta), source: "builtin" },
+    files: {
+      "theme.json": JSON.stringify(inkMeta, null, 2),
+      "templates/layout.hbs": inkLayout,
+      "templates/page.hbs": inkPage,
+      "partials/nav.hbs": inkNav,
+      "assets/style.css": inkCss,
+    },
+  },
+  {
+    meta: { ...(terminalMeta as unknown as ThemeMeta), source: "builtin" },
+    files: {
+      "theme.json": JSON.stringify(terminalMeta, null, 2),
+      "templates/layout.hbs": terminalLayout,
+      "templates/page.hbs": terminalPage,
+      "partials/nav.hbs": terminalNav,
+      "assets/style.css": terminalCss,
+    },
+  },
+  {
+    meta: { ...(galleryMeta as unknown as ThemeMeta), source: "builtin" },
+    files: {
+      "theme.json": JSON.stringify(galleryMeta, null, 2),
+      "templates/layout.hbs": galleryLayout,
+      "templates/page.hbs": galleryPage,
+      "partials/nav.hbs": galleryNav,
+      "assets/style.css": galleryCss,
     },
   },
 ];

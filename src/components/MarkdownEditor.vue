@@ -40,12 +40,79 @@ function commit(from: number, to: number, insert: string, anchor: number, head: 
   view.focus();
 }
 
-/** 包裹/解除包裹选区;无选区时插入一对符号并置于中间 */
+/** 紧贴选区某一侧的连续标记字符数(限同一行,用于判断格式是否已应用) */
+function markerRun(ch: string, side: "left" | "right"): number {
+  if (!view) return 0;
+  const { state } = view;
+  const range = state.selection.main;
+  const pos = side === "left" ? range.from : range.to;
+  const line = state.doc.lineAt(pos);
+  let n = 0;
+  while (
+    side === "left"
+      ? pos - 1 - n >= line.from && state.sliceDoc(pos - 1 - n, pos - n) === ch
+      : pos + n < line.to && state.sliceDoc(pos + n, pos + n + 1) === ch
+  ) {
+    n++;
+  }
+  return n;
+}
+
+/**
+ * 行内栈式配对:扫描当前行中成对的 before...after 标记,
+ * 返回包含选区(或光标)的最内层包裹;跨行或未命中返回 null。
+ */
+function enclosingPair(
+  before: string,
+  after: string,
+): { from: number; to: number; innerFrom: number; innerTo: number } | null {
+  if (!view) return null;
+  const { state } = view;
+  const range = state.selection.main;
+  const line = state.doc.lineAt(range.from);
+  if (state.doc.lineAt(range.to).number !== line.number) return null;
+  const text = line.text;
+  const localFrom = range.from - line.from;
+  const localTo = range.to - line.from;
+  const stack: number[] = [];
+  let i = 0;
+  while (i <= text.length - before.length) {
+    if (text.startsWith(before, i)) {
+      stack.push(i);
+      i += before.length;
+      continue;
+    }
+    if (stack.length && text.startsWith(after, i)) {
+      const start = stack.pop()!;
+      const innerFrom = start + before.length;
+      const innerTo = i;
+      if (innerTo > innerFrom && localFrom >= innerFrom && localTo <= innerTo) {
+        return {
+          from: line.from + start,
+          to: line.from + i + after.length,
+          innerFrom: line.from + innerFrom,
+          innerTo: line.from + innerTo,
+        };
+      }
+      i += after.length;
+      continue;
+    }
+    i++;
+  }
+  return null;
+}
+
+/**
+ * 包裹/解除包裹选区;无选区时插入一对符号并置于中间。
+ * 选中文本或光标所在处已被相同格式包裹时,再次按下即取消该格式;
+ * 斜体按单个 `*` 判定,连续偶数个 `*` 属于加粗标记,不算斜体已应用。
+ */
 function wrapSelection(before: string, after: string = before) {
   if (!view) return;
   const { state } = view;
   const range = state.selection.main;
   const text = state.sliceDoc(range.from, range.to);
+  // 选区完整包含包裹对:剥离
   if (
     text.length >= before.length + after.length &&
     text.startsWith(before) &&
@@ -55,10 +122,31 @@ function wrapSelection(before: string, after: string = before) {
     commit(range.from, range.to, inner, range.from + before.length, range.from + before.length + inner.length);
     return;
   }
-  const beforeText = state.sliceDoc(Math.max(0, range.from - before.length), range.from);
-  const afterText = state.sliceDoc(range.to, Math.min(state.doc.length, range.to + after.length));
-  if (beforeText === before && afterText === after) {
-    commit(range.from - before.length, range.to + after.length, text, range.from - before.length, range.from - before.length + text.length);
+  // 选区/光标位于同行的完整包裹对内部(部分选中、光标悬停均可):整对剥离。
+  // 单个 `*` 与加粗的 `**` 字符重叠,无法无歧义配对,只走下方紧邻检测
+  const pair = before === "*" ? null : enclosingPair(before, after);
+  if (pair) {
+    const inner = state.sliceDoc(pair.innerFrom, pair.innerTo);
+    commit(pair.from, pair.to, inner, pair.innerFrom, pair.innerTo);
+    return;
+  }
+  // 选区紧贴成对标记(包裹结构不规范时的兜底):按字符数剥离一层
+  const ch = before[0];
+  const ln = markerRun(ch, "left");
+  const rn = markerRun(ch, "right");
+  const applied =
+    before === "*"
+      ? ln >= 1 && rn >= 1 && ln % 2 === 1 && rn % 2 === 1
+      : ln >= before.length && rn >= after.length;
+  if (applied) {
+    const drop = Math.min(before.length, ln, rn);
+    commit(
+      range.from - drop,
+      range.to + drop,
+      text,
+      range.from - drop,
+      range.from - drop + text.length,
+    );
     return;
   }
   const insert = before + text + after;
@@ -154,6 +242,39 @@ function toggleCodeBlock() {
     const inner = text.slice(4, -4);
     commit(range.from, range.to, inner, range.from, range.from + inner.length);
     return;
+  }
+  // 光标/选区处于 ``` 围栏内部(未选中围栏行):移除上下围栏行,保留代码内容
+  const fenceRe = /^ {0,3}```/;
+  const fromLine = state.doc.lineAt(range.from);
+  const toLine = state.doc.lineAt(range.to);
+  if (!fenceRe.test(fromLine.text) && !fenceRe.test(toLine.text)) {
+    // 选区之前的围栏行为奇数个 = 当前处于某个围栏内部
+    let fencesBefore = 0;
+    let openNum = 0;
+    for (let n = 1; n < fromLine.number; n++) {
+      if (fenceRe.test(state.doc.line(n).text)) {
+        fencesBefore++;
+        openNum = n;
+      }
+    }
+    if (fencesBefore % 2 === 1) {
+      for (let n = toLine.number + 1; n <= state.doc.lines; n++) {
+        const close = state.doc.line(n);
+        if (fenceRe.test(close.text)) {
+          const open = state.doc.line(openNum);
+          view.dispatch({
+            changes: [
+              { from: open.from, to: open.to + 1 },
+              { from: close.from, to: Math.min(close.to + 1, state.doc.length) },
+            ],
+            selection: { anchor: open.from },
+            scrollIntoView: true,
+          });
+          view.focus();
+          return;
+        }
+      }
+    }
   }
   const insert = `\`\`\`\n${text}\n\`\`\``;
   commit(range.from, range.to, insert, range.from + 4, range.from + 4 + text.length);
@@ -270,8 +391,8 @@ defineExpose({
 
 <template>
   <div class="flex h-full min-h-0 flex-col bg-surface">
-    <!-- 格式工具栏 -->
-    <div class="flex h-9 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-line px-2">
+    <!-- 格式工具栏:按钮溢出时自动换行,不出现横向滚动条 -->
+    <div class="flex shrink-0 flex-wrap content-start items-center gap-0.5 border-b border-line px-2 py-[5px]">
       <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 1 })" @click="setHeading(1)">H1</button>
       <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 2 })" @click="setHeading(2)">H2</button>
       <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 3 })" @click="setHeading(3)">H3</button>

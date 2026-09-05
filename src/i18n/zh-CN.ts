@@ -134,6 +134,7 @@ export default {
     logoHint: "可选,PNG / SVG / JPG / WebP,显示在站点侧栏顶部,并作为所有页面的收藏夹图标。",
     language: "站点语言",
     languageHint: "生成网页的语言标记,便于搜索引擎与朗读工具识别。",
+    languageCustom: "自定义",
     titleFormat: "浏览器标题格式",
     titleFormatPlaceholder: "{'{'}page{'}'} · {'{'}site{'}'}",
     titleFormatHint: "用 {'{'}page{'}'} 表示页面标题、{'{'}site{'}'} 表示站点名称,例如 {'{'}page{'}'} · {'{'}site{'}'}、{'{'}page{'}'} - {'{'}site{'}'}。留空使用默认连接符「·」。",
@@ -263,7 +264,8 @@ export default {
   },
   about: {
     title: "关于素构",
-    description: "可视化一站式搞定你自己的本地静态文档站点。适合用于为你的软件或项目做一个介绍网站,支持定制化主题,并且还额外支持发布到 GitHub Pages。",
+    description:
+      "可视化一站式搞定你自己的本地静态文档站点。\n适合用于为你的软件或项目做一个介绍网站，支持定制化主题，并且还额外支持发布到 GitHub Pages。",
   },
   settings: {
     title: "软件设置",
@@ -277,10 +279,14 @@ export default {
     autosave: "自动保存",
     autosaveHint: "编辑文档时自动保存,无需手动 Ctrl+S。",
     theme: "软件主题",
-    themeHint: "浅色、暗色,或跟随系统自动切换。",
+    themeHint: "挑选一套配色,或跟随系统自动切换。",
     themeLight: "浅色",
     themeDark: "暗色",
     themeSystem: "跟随系统",
+    themeSepia: "素笺",
+    themeMint: "青瓷",
+    themeOcean: "深海",
+    themePlum: "紫檀",
     uiFont: "界面字体",
     uiFontHint: "应用界面的显示字体。",
     editorFont: "编辑器字体",

@@ -79,3 +79,107 @@
   --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-window: 0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
+
+/* ---------- 素笺(暖纸米黄,浅色) ---------- */
+:root[data-theme="sepia"] {
+  --color-bg: #f7f2e9;
+  --color-surface: #fdfaf4;
+  --color-surface-2: #f0e9db;
+  --color-surface-3: #e9e0cd;
+  --color-line: #ded3bd;
+  --color-line-strong: #c8ba9e;
+  --color-ink: #40362a;
+  --color-ink-2: #6f6350;
+  --color-ink-3: #a3967e;
+  --color-accent: #6b5537;
+  --color-accent-strong: #57452a;
+  --color-accent-soft: #ece2cd;
+  --color-on-accent: #fffdf8;
+  --color-danger: #a63b26;
+  --color-danger-soft: #f8ece3;
+  --color-danger-strong: #8c2f1d;
+  --color-scrim: rgba(64, 54, 42, 0.32);
+  --code-string: #0d7a66;
+  --code-number: #9a4a0e;
+  --code-class: #1d5ec8;
+  --shadow-popover: 0 4px 16px rgba(64, 54, 42, 0.1), 0 1px 3px rgba(64, 54, 42, 0.07);
+  --shadow-window: 0 16px 48px rgba(64, 54, 42, 0.2), 0 2px 8px rgba(64, 54, 42, 0.09);
+}
+
+/* ---------- 青瓷(冷绿釉面,浅色) ---------- */
+:root[data-theme="mint"] {
+  --color-bg: #f3f7f4;
+  --color-surface: #fcfdfc;
+  --color-surface-2: #e8efe9;
+  --color-surface-3: #dfe8e0;
+  --color-line: #d2ded4;
+  --color-line-strong: #b9cabb;
+  --color-ink: #1b2a22;
+  --color-ink-2: #52645a;
+  --color-ink-3: #91a398;
+  --color-accent: #2e6b4f;
+  --color-accent-strong: #235540;
+  --color-accent-soft: #e0ede4;
+  --color-on-accent: #fbfdfa;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fbf1f0;
+  --color-danger-strong: #99201a;
+  --color-scrim: rgba(27, 42, 34, 0.32);
+  --code-string: #0f766e;
+  --code-number: #92400e;
+  --code-class: #1d4ed8;
+  --shadow-popover: 0 4px 16px rgba(27, 42, 34, 0.09), 0 1px 3px rgba(27, 42, 34, 0.06);
+  --shadow-window: 0 16px 48px rgba(27, 42, 34, 0.17), 0 2px 8px rgba(27, 42, 34, 0.08);
+}
+
+/* ---------- 深海(蓝黑,深色) ---------- */
+:root[data-theme="ocean"] {
+  --color-bg: #10161d;
+  --color-surface: #151d26;
+  --color-surface-2: #1c2531;
+  --color-surface-3: #222d3b;
+  --color-line: #293645;
+  --color-line-strong: #3b4c60;
+  --color-ink: #d9e3ee;
+  --color-ink-2: #8fa3b8;
+  --color-ink-3: #5c7186;
+  --color-accent: #d9e3ee;
+  --color-accent-strong: #e8f0f8;
+  --color-accent-soft: #1d2a38;
+  --color-on-accent: #10161d;
+  --color-danger: #e89a94;
+  --color-danger-soft: #3a2626;
+  --color-danger-strong: #d47d74;
+  --color-scrim: rgba(0, 0, 0, 0.55);
+  --code-string: #79c0b7;
+  --code-number: #d4a27f;
+  --code-class: #93b5f2;
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-window: 0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- 紫檀(紫黑,深色) ---------- */
+:root[data-theme="plum"] {
+  --color-bg: #171217;
+  --color-surface: #1e171d;
+  --color-surface-2: #271e26;
+  --color-surface-3: #2f242e;
+  --color-line: #372b36;
+  --color-line-strong: #4b3a49;
+  --color-ink: #ebe0e9;
+  --color-ink-2: #a894a6;
+  --color-ink-3: #746173;
+  --color-accent: #ebe0e9;
+  --color-accent-strong: #f6ecf4;
+  --color-accent-soft: #2c222b;
+  --color-on-accent: #171217;
+  --color-danger: #e8968d;
+  --color-danger-soft: #3b2523;
+  --color-danger-strong: #d4776e;
+  --color-scrim: rgba(0, 0, 0, 0.55);
+  --code-string: #85c3b4;
+  --code-number: #d4a27f;
+  --code-class: #b0a3ec;
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-window: 0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+}

@@ -1,0 +1,21 @@
+<ul class="ps-nav-list">
+  {{#each nav}}
+    <li class="ps-nav-item" data-nav-id="{{this.url}}">
+      {{#if this.children}}
+        <div class="ps-nav-dir-wrap">
+          <button class="ps-nav-caret" type="button" aria-expanded="false" aria-label="{{this.title}}">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5 8 6l-4 3.5"/></svg>
+          </button>
+          {{#if this.url}}
+            <a class="ps-nav-dir{{#if this.current}} current{{/if}}" href="{{this.url}}">{{this.title}}</a>
+          {{else}}
+            <div class="ps-nav-dir">{{this.title}}</div>
+          {{/if}}
+        </div>
+        <div class="ps-nav-sub"><div class="ps-nav-sub-in">{{> nav nav=this.children}}</div></div>
+      {{else if this.url}}
+        <a class="ps-nav-link{{#if this.current}} current{{/if}}" href="{{this.url}}">{{this.title}}</a>
+      {{/if}}
+    </li>
+  {{/each}}
+</ul>

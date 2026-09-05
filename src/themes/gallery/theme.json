@@ -1,24 +1,24 @@
 {
-  "id": "plain-light",
-  "name": "素构 · 浅色",
+  "id": "gallery",
+  "name": "画廊",
   "version": "1.4.0",
   "author": "MogroWang Studio",
-  "description": "默认浅色主题:灰白纸感,墨色强调,系统字体。",
+  "description": "卡片现代风:浮卡分层,大圆角,陶土暖橘点睛。",
   "config": [
     {
       "key": "accentColor",
       "label": "强调色",
       "type": "color",
-      "default": "#333333"
+      "default": "#c8553d"
     },
     {
-      "key": "sidebarWidth",
-      "label": "侧栏宽度",
+      "key": "contentWidth",
+      "label": "正文宽度(px)",
       "type": "number",
-      "default": 260,
-      "min": 200,
-      "max": 360,
-      "step": 10
+      "default": 740,
+      "min": 600,
+      "max": 920,
+      "step": 20
     },
     {
       "key": "bodyFont",
@@ -33,19 +33,6 @@
       "type": "text",
       "default": "",
       "visibleIf": { "key": "bodyFont", "equals": "custom" }
-    },
-    {
-      "key": "pageTransition",
-      "label": "页面过渡动画",
-      "type": "select",
-      "default": "淡入上浮",
-      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现", "滑入", "弹性浮现", "模糊聚焦", "翻页", "揭开"]
-    },
-    {
-      "key": "showDescription",
-      "label": "显示站点描述",
-      "type": "boolean",
-      "default": true
     },
     {
       "key": "showFooterCredit",

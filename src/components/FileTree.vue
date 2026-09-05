@@ -30,6 +30,11 @@ const displayTree = computed(() =>
   site.tree.filter((n) => !(n.type === "file" && n.name.toLowerCase() === "index.md")),
 );
 
+/** 拖拽中实际移动的路径集合(多选拖拽 = 全部选中项),供各行整体淡化 */
+const draggingPaths = ref<Set<string> | null>(null);
+provide("treeDragging", draggingPaths);
+provide("treeSetDragging", setDragging);
+
 /* ---------- 固定首页入口 ---------- */
 
 const homeNode = computed(() => site.findDoc("index.md"));
@@ -398,12 +403,23 @@ async function onExternalDrop(e: DragEvent) {
 
 /* ---------- 移动(拖拽/批量) ---------- */
 
-/** 拖动项属于多选集合时,全部选中项一起移动(排除目标自身及其祖先) */
-function expandDragSrcs(src: string, destDir: string): string[] {
+/** 拖动 src 实际移动的集合:src 属于多选集合时为全部选中项,并去掉会被祖先带走的后代(框选常同时选中文件夹与其内容) */
+function dragSrcs(src: string): string[] {
   if (!selectedPaths.value.has(src) || selectedPaths.value.size <= 1) return [src];
-  return [...selectedPaths.value].filter(
+  const paths = [...selectedPaths.value];
+  return paths.filter((s) => !paths.some((p) => s.startsWith(p + "/")));
+}
+
+/** 再排除目标自身与目标位于某选中项内部的情况(不能把文件夹移进它自己) */
+function expandDragSrcs(src: string, destDir: string): string[] {
+  return dragSrcs(src).filter(
     (s) => s !== destDir && !(destDir && destDir.startsWith(s + "/")),
   );
+}
+
+/** 拖动开始时记录实际移动集合,各行据此整体淡化(拖动结束传 null 复位) */
+function setDragging(src: string | null) {
+  draggingPaths.value = src ? new Set(dragSrcs(src)) : null;
 }
 
 async function onMove(src: string, destDir: string) {
@@ -524,23 +540,6 @@ async function onTreeDrop(e: DragEvent) {
       </div>
     </div>
 
-    <!-- 批量操作工具栏 -->
-    <div
-      v-if="selectedCount > 0"
-      class="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2"
-    >
-      <span class="shrink-0 whitespace-nowrap text-[12px] font-medium text-ink-2">{{ t("tree.selected", { n: selectedCount }) }}</span>
-      <div class="ml-auto flex items-center gap-1">
-        <button class="btn btn-sm btn-secondary text-[11.5px]" @click="showMoveDialog = true">
-          <AppIcon name="folder" :size="13" />
-          {{ t("tree.moveTo") }}
-        </button>
-        <button class="btn-icon !h-6 !w-6" :title="t('tree.deselect')" @click="clearSelection">
-          <AppIcon name="x" :size="13" />
-        </button>
-      </div>
-    </div>
-
     <!-- 固定首页入口(不随树滚动,缺失时点击创建) -->
     <div class="px-2 pb-1 pt-2">
       <div
@@ -600,6 +599,23 @@ async function onTreeDrop(e: DragEvent) {
         <!-- 拖到空白处:移动到根目录末尾的指示线 -->
         <div v-if="dropMark?.kind === 'root-end'" class="drop-line-root" aria-hidden="true" />
       </template>
+    </div>
+
+    <!-- 底部多选状态条:计数与批量操作固定在侧栏底部,不随树滚动 -->
+    <div
+      v-if="selectedCount > 0"
+      class="flex shrink-0 items-center gap-2 border-t border-line bg-surface-2 px-3 py-2"
+    >
+      <span class="shrink-0 whitespace-nowrap text-[12px] font-medium text-ink-2">{{ t("tree.selected", { n: selectedCount }) }}</span>
+      <div class="ml-auto flex items-center gap-1">
+        <button class="btn btn-sm btn-secondary text-[11.5px]" @click="showMoveDialog = true">
+          <AppIcon name="folder" :size="13" />
+          {{ t("tree.moveTo") }}
+        </button>
+        <button class="btn-icon !h-6 !w-6" :title="t('tree.deselect')" @click="clearSelection">
+          <AppIcon name="x" :size="13" />
+        </button>
+      </div>
     </div>
 
     <PromptModal

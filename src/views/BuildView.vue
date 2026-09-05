@@ -95,7 +95,8 @@ function openOutput() {
 
           <!-- 输出操作:与「重新构建」同规格的大按钮 -->
           <div class="mt-auto flex flex-col gap-2 border-t border-line pt-4">
-            <button v-if="ipc.inTauri" class="btn btn-secondary w-full" @click="builder.openOrRefreshPreviewWindow">
+            <!-- 独立窗口加载的是构建产物,未构建时不可用 -->
+            <button v-if="ipc.inTauri" class="btn btn-secondary w-full" :disabled="!builder.report" @click="builder.openOrRefreshPreviewWindow">
               <AppIcon name="window" :size="15" />
               {{ t("build.openWindow") }}
             </button>

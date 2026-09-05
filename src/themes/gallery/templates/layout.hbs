@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="{{#if site.locale}}{{site.locale}}{{else}}zh-CN{{/if}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{#if page.fullTitle}}{{page.fullTitle}}{{else}}{{site.name}}{{/if}}</title>
+  {{#if site.description}}<meta name="description" content="{{site.description}}">{{/if}}
+  {{#if site.logo}}<link rel="icon" href="{{site.logo}}">{{/if}}
+  <style>
+    :root {
+      --ps-accent: {{config.accentColor}};
+      --ps-doc-w: {{config.contentWidth}}px;
+    }
+  </style>
+  <link rel="stylesheet" href="{{asset "assets/style.css"}}">
+</head>
+  <body class="gallery font-{{config.bodyFont}}"{{#if (eq config.bodyFont "custom")}} style="--ps-font-body: {{config.customFont}}"{{/if}}>
+  <!-- 顶部导航条:站点标识 + 水平导航(目录以下拉卡片展开) -->
+  <header class="ps-topbar">
+    <a class="ps-brand" href="{{asset "index.html"}}">
+      {{#if site.logo}}<img class="ps-logo" src="{{site.logo}}" alt="{{site.name}}">{{/if}}
+      <span class="ps-site-name">{{site.name}}</span>
+    </a>
+    <nav class="ps-nav" aria-label="文档导航">{{> nav}}</nav>
+  </header>
+  <main class="ps-main">
+    {{> page}}
+    {{#if config.showFooterCredit}}
+      <footer class="ps-footer">
+        <a href="https://github.com/MogroWang/Plainstruct" target="_blank" rel="noopener">由 Plainstruct 创建</a>
+      </footer>
+    {{/if}}
+  </main>
+  <script>
+    /* 点击下拉卡片外部或其他目录时收起已展开的下拉 */
+    (function () {
+      document.addEventListener("click", function (e) {
+        if (!(e.target instanceof Element)) return;
+        Array.prototype.forEach.call(document.querySelectorAll("details.ps-nav-dir[open]"), function (d) {
+          if (!d.contains(e.target)) d.removeAttribute("open");
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

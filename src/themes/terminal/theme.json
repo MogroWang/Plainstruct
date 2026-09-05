@@ -1,0 +1,36 @@
+{
+  "id": "terminal",
+  "name": "终端",
+  "version": "1.4.0",
+  "author": "MogroWang Studio",
+  "description": "命令行风:等宽排印,暗色窗口,提示符导航。",
+  "config": [
+    {
+      "key": "accentColor",
+      "label": "强调色",
+      "type": "color",
+      "default": "#43d17c"
+    },
+    {
+      "key": "contentWidth",
+      "label": "正文宽度(px)",
+      "type": "number",
+      "default": 780,
+      "min": 620,
+      "max": 980,
+      "step": 20
+    },
+    {
+      "key": "scanline",
+      "label": "CRT 扫描线纹理",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "key": "showFooterCredit",
+      "label": "在底部显示由 Plainstruct 创建",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}

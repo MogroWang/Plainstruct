@@ -1,0 +1,11 @@
+<article class="ps-doc">
+  <div class="ps-doc-card">
+    {{#if page.title}}<h1 class="ps-doc-title">{{page.title}}</h1>{{/if}}
+    {{#if page.description}}<p class="ps-doc-desc">{{page.description}}</p>{{/if}}
+    <div class="ps-doc-body">{{{page.content}}}</div>
+  </div>
+  <nav class="ps-pager">
+    {{#if prev}}<a class="ps-pager-item ps-pager-prev" href="{{prev.url}}"><span class="ps-pager-tag">←</span>{{prev.title}}</a>{{/if}}
+    {{#if next}}<a class="ps-pager-item ps-pager-next" href="{{next.url}}">{{next.title}}<span class="ps-pager-tag">→</span></a>{{/if}}
+  </nav>
+</article>

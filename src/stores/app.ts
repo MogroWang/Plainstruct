@@ -11,6 +11,7 @@ import type {
   UiFontMode,
 } from "@/ipc/types";
 import { i18n, type Locale as I18nLocale } from "@/i18n";
+import { appThemeDef } from "@/lib/app-themes";
 
 export type AppView = "editor" | "site" | "build" | "theme" | "publish" | "settings" | "about";
 
@@ -66,10 +67,11 @@ export const useAppStore = defineStore("app", {
     version(): string {
       return this.bootstrap?.version ?? "";
     },
-    /** 软件当前是否处于暗色(个性化设置 + 系统深色) */
+    /** 软件当前是否处于暗色(固定深色主题,或跟随系统时取系统深浅) */
     isDark(state): boolean {
       const theme = state.bootstrap?.settings.theme ?? "system";
-      return theme === "dark" || (theme !== "light" && state.systemDark);
+      if (theme === "system") return state.systemDark;
+      return appThemeDef(theme).dark;
     },
   },
 
@@ -114,9 +116,10 @@ export const useAppStore = defineStore("app", {
       if (typeof document === "undefined") return;
       const { theme, uiFont, uiFontCustom, editorFont, editorFontCustom } = this.settings;
       const root = document.documentElement;
+      // 跟随系统时落到 light/dark,其余主题直接以自身 id 生效
       const preferDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      root.dataset.theme =
-        theme === "dark" || (theme !== "light" && preferDark) ? "dark" : "light";
+      const resolved = theme ?? "system";
+      root.dataset.theme = resolved === "system" ? (preferDark ? "dark" : "light") : resolved;
 
       let ui: string | undefined;
       if (uiFont === "custom") ui = (uiFontCustom ?? "").trim() || undefined;

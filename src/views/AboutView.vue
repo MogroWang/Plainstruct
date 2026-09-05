@@ -26,7 +26,7 @@ function goBack() {
       <p class="mt-3 text-center text-[14px] leading-relaxed text-ink-2">{{ t("app.tagline") }}</p>
 
       <div class="mt-10 w-full rounded-xl border border-line bg-surface p-6">
-        <p class="text-[13.5px] leading-relaxed text-ink-2">{{ t("about.description") }}</p>
+        <p class="whitespace-pre-line text-[13.5px] leading-relaxed text-ink-2">{{ t("about.description") }}</p>
 
         <div class="mt-6 flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-5 text-[12.5px] text-ink-3">
           <span>Vue 3 · TypeScript · Tauri 2</span>

@@ -134,6 +134,7 @@ export default {
     logoHint: "Optional. PNG / SVG / JPG / WebP, shown at the top of the site sidebar and used as the favicon of every page.",
     language: "Site language",
     languageHint: "Language tag for generated pages, used by search engines and screen readers.",
+    languageCustom: "Custom",
     titleFormat: "Browser title format",
     titleFormatPlaceholder: "{'{'}page{'}'} · {'{'}site{'}'}",
     titleFormatHint: "Use {'{'}page{'}'} for the page title and {'{'}site{'}'} for the site name, e.g. {'{'}page{'}'} · {'{'}site{'}'} or {'{'}page{'}'} - {'{'}site{'}'}. Leave empty for the default “·”.",
@@ -263,7 +264,8 @@ export default {
   },
   about: {
     title: "About Plainstruct",
-    description: "Build your own local static documentation site visually, all in one place. Great as an introduction site for your software or project, with customizable themes and optional publishing to GitHub Pages.",
+    description:
+      "Build your own local static documentation site visually, all in one place.\nGreat as an introduction site for your software or project, with customizable themes and optional publishing to GitHub Pages.",
   },
   settings: {
     title: "Settings",
@@ -277,10 +279,14 @@ export default {
     autosave: "Autosave",
     autosaveHint: "Save documents automatically as you edit, no manual Ctrl+S needed.",
     theme: "App theme",
-    themeHint: "Light, dark, or follow the system automatically.",
+    themeHint: "Pick a palette, or follow the system automatically.",
     themeLight: "Light",
     themeDark: "Dark",
     themeSystem: "System",
+    themeSepia: "Sepia",
+    themeMint: "Celadon",
+    themeOcean: "Deep Sea",
+    themePlum: "Plum",
     uiFont: "Interface font",
     uiFontHint: "Font used across the app UI.",
     editorFont: "Editor font",

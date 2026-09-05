@@ -38,8 +38,9 @@ const emit = defineEmits<{
 const editor = useEditorStore();
 const collapsed = inject<Ref<Set<string>>>("treeCollapsed", ref(new Set()));
 const dropMark = inject<Ref<DropMark>>("treeDropMark", ref(null));
+const draggingPaths = inject<Ref<Set<string> | null>>("treeDragging", ref(null));
+const setDragging = inject<(src: string | null) => void>("treeSetDragging", () => {});
 const dragOver = ref(false);
-const dragging = ref(false);
 /** 当前悬停区域:行上/下边缘 = 移到父目录,文件夹中部 = 移入 */
 const dropPos = ref<"before" | "after" | "into">("into");
 let expandTimer: number | undefined;
@@ -49,6 +50,8 @@ const label = computed(() => (isDir.value ? props.node.name : props.node.name.re
 const isActive = computed(() => !isDir.value && editor.activePath === props.node.path);
 const isCollapsed = computed(() => collapsed.value.has(props.node.path));
 const isSelected = computed(() => props.selectedPaths.has(props.node.path));
+/** 本行在拖动集合中(多选拖拽 = 全部选中项一起淡化) */
+const isDragging = computed(() => !!draggingPaths.value?.has(props.node.path));
 const markBefore = computed(
   () => dropMark.value?.kind === "before" && dropMark.value.path === props.node.path,
 );
@@ -75,7 +78,7 @@ function onRowClick(e: MouseEvent) {
 function onDragStart(e: DragEvent) {
   e.dataTransfer?.setData("text/plain", props.node.path);
   if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-  dragging.value = true;
+  setDragging(props.node.path);
   dropMark.value = null;
 }
 
@@ -123,7 +126,7 @@ function endDrag(e?: DragEvent) {
 }
 
 function onDragEnd() {
-  dragging.value = false;
+  setDragging(null);
   dragOver.value = false;
   dropMark.value = null;
   clearExpandTimer();
@@ -159,7 +162,7 @@ function onDrop(e: DragEvent) {
         active: isActive,
         'drag-over': dragOver,
         'bg-surface-2': isSelected,
-        'opacity-40': dragging,
+        'opacity-40': isDragging,
       }"
       :style="{ paddingLeft: depth * 14 + 4 + 'px' }"
       :draggable="true"
