@@ -7,7 +7,8 @@
 
 <h1 align="center">素构 Plainstruct</h1>
 
-<p align="center">本地运行的静态文档(wiki)网站创建器。在文件夹里写 Markdown,一键构建、本地预览、发布到 GitHub Pages——不需要命令行,不需要后端。。</p>
+<p align="center">本地运行的静态文档(wiki)网站创建器。
+在本地写 Markdown，一键构建、本地预览、发布到 GitHub Pages。</p>
 
 
 [English](./README.en.md) · [更新日志](./changelog.md)
