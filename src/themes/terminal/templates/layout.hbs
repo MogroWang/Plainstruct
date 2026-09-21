@@ -15,34 +15,126 @@
   <link rel="stylesheet" href="{{asset "assets/style.css"}}">
 </head>
   <body class="term{{#if config.scanline}} term-scan{{/if}}">
-  <!-- 顶部命令条:站点标识 + 水平导航(目录以下拉面板展开) -->
+  <!-- 移动端顶栏:菜单按钮 + 当前页路径 + 站点标识(桌面端隐藏) -->
   <header class="ps-topbar">
-    <a class="ps-brand" href="{{asset "index.html"}}">
+    <button class="ps-menu-btn" type="button" aria-label="文档列表" aria-expanded="false" aria-controls="ps-sidebar">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <path d="M2.5 4.5h13M2.5 9h13M2.5 13.5h13" />
+      </svg>
+    </button>
+    <!-- 当前页路径(仅移动端显示) -->
+    <nav class="ps-crumbs" aria-label="当前页路径">
+      {{#each page.crumbs}}<span class="ps-crumb-item">{{this}}</span><span class="ps-crumb-sep">/</span>{{/each}}
+      <span class="ps-crumb-item ps-crumb-current">{{page.title}}</span>
+    </nav>
+    <a class="ps-topbar-brand" href="{{asset "index.html"}}">
       <span class="ps-prompt" aria-hidden="true"></span>
       {{#if site.logo}}<img class="ps-logo" src="{{site.logo}}" alt="{{site.name}}">{{/if}}
-      <span class="ps-brand-text">
+      <span class="ps-topbar-text">
         <span class="ps-site-name">{{site.name}}</span>
-        {{#if site.description}}<span class="ps-brand-desc">{{site.description}}</span>{{/if}}
       </span>
     </a>
-    <nav class="ps-nav" aria-label="文档导航">{{> nav}}</nav>
   </header>
-  <main class="ps-main">
-    {{> page}}
-    {{#if config.showFooterCredit}}
-      <footer class="ps-footer">
-        <a href="https://github.com/MogroWang/Plainstruct" target="_blank" rel="noopener">由 Plainstruct 创建</a>
-      </footer>
-    {{/if}}
-  </main>
+  <div class="ps-mask" aria-hidden="true"></div>
+  <div class="ps-shell">
+    <aside class="ps-sidebar" id="ps-sidebar">
+      <a class="ps-site" href="{{asset "index.html"}}">
+        <span class="ps-prompt" aria-hidden="true"></span>
+        {{#if site.logo}}<img class="ps-logo" src="{{site.logo}}" alt="{{site.name}}">{{/if}}
+        <span class="ps-site-name">{{site.name}}</span>
+      </a>
+      {{#if site.description}}<p class="ps-site-desc">{{site.description}}</p>{{/if}}
+      <nav class="ps-nav" aria-label="文档导航">{{> nav}}</nav>
+    </aside>
+    <main class="ps-main">
+      {{> page}}
+      {{#if config.showFooterCredit}}
+        <footer class="ps-footer">
+          <a href="https://github.com/MogroWang/Plainstruct" target="_blank" rel="noopener">由 Plainstruct 创建</a>
+        </footer>
+      {{/if}}
+    </main>
+  </div>
   <script>
-    /* 点击下拉面板外部或其他目录时收起已展开的下拉 */
     (function () {
-      document.addEventListener("click", function (e) {
+      var btn = document.querySelector(".ps-menu-btn");
+      var sidebar = document.querySelector(".ps-sidebar");
+      var mask = document.querySelector(".ps-mask");
+      if (!btn || !sidebar || !mask) return;
+      function setDrawer(open) {
+        sidebar.classList.toggle("open", open);
+        mask.classList.toggle("show", open);
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+      }
+      btn.addEventListener("click", function () {
+        setDrawer(!sidebar.classList.contains("open"));
+      });
+      mask.addEventListener("click", function () {
+        setDrawer(false);
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") setDrawer(false);
+      });
+      sidebar.addEventListener("click", function (e) {
+        if (e.target instanceof Element && e.target.closest("a")) setDrawer(false);
+      });
+    })();
+    (function () {
+      /* 侧栏目录折叠:默认收起;点击展开并记忆,只有用户主动点击才会收起 */
+      var navEl = document.querySelector(".ps-nav");
+      if (!navEl) return;
+      var NAV_KEY = "ps-nav-open";
+      var openSet;
+      try {
+        var raw = JSON.parse(sessionStorage.getItem(NAV_KEY) || "[]");
+        openSet = new Set(Array.isArray(raw) ? raw : []);
+      } catch (err) {
+        openSet = new Set();
+      }
+      var saveOpen = function () {
+        try { sessionStorage.setItem(NAV_KEY, JSON.stringify(Array.from(openSet))); } catch (err) {}
+      };
+      var expand = function (li, persist) {
+        li.classList.add("open");
+        var caret = li.querySelector(".ps-nav-caret");
+        if (caret) caret.setAttribute("aria-expanded", "true");
+        var id = li.getAttribute("data-nav-id");
+        if (persist && id) { openSet.add(id); saveOpen(); }
+      };
+      var collapse = function (li) {
+        li.classList.remove("open");
+        var caret = li.querySelector(".ps-nav-caret");
+        if (caret) caret.setAttribute("aria-expanded", "false");
+        var id = li.getAttribute("data-nav-id");
+        if (id) { openSet.delete(id); saveOpen(); }
+      };
+      var items = navEl.querySelectorAll(".ps-nav-item[data-nav-id]");
+      Array.prototype.forEach.call(items, function (li) {
+        if (openSet.has(li.getAttribute("data-nav-id"))) expand(li, false);
+      });
+      /* 当前页的祖先目录自动展开(不写入记忆,用户仍可手动收起) */
+      var current = navEl.querySelector("a.current, .ps-nav-dir.current");
+      var node = current ? current.parentElement : null;
+      while (node && node !== navEl) {
+        if (node.classList && node.classList.contains("ps-nav-item")) expand(node, false);
+        node = node.parentElement;
+      }
+      navEl.addEventListener("click", function (e) {
         if (!(e.target instanceof Element)) return;
-        Array.prototype.forEach.call(document.querySelectorAll("details.ps-nav-dir[open]"), function (d) {
-          if (!d.contains(e.target)) d.removeAttribute("open");
-        });
+        var caret = e.target.closest(".ps-nav-caret");
+        if (caret) {
+          var li = caret.closest(".ps-nav-item");
+          if (!li) return;
+          if (li.classList.contains("open")) collapse(li);
+          else expand(li, true);
+          return;
+        }
+        /* 点击查看文件夹时自动展开,之后保持展开 */
+        var dirLink = e.target.closest("a.ps-nav-dir");
+        if (dirLink) {
+          var li2 = dirLink.closest(".ps-nav-item");
+          if (li2 && !li2.classList.contains("open")) expand(li2, true);
+        }
       });
     })();
   </script>

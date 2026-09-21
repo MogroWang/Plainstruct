@@ -43,32 +43,82 @@ body {
     radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, 0.32));
 }
 
-/* ---------- 顶部命令条 ---------- */
+/* ---------- 移动端顶栏与抽屉控件(仅移动端可见) ---------- */
 
 .ps-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  height: var(--ps-topbar-h);
-  padding: 0 20px;
-  background: var(--ps-surface);
-  border-bottom: 1px solid var(--ps-line);
+  display: none;
 }
 
-.ps-brand {
+/* 当前页路径:仅移动端顶栏显示 */
+.ps-crumbs {
+  display: none;
+}
+
+.ps-menu-btn {
+  display: none;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ps-line);
+  background: var(--ps-surface);
+  color: var(--ps-ink);
+  cursor: pointer;
+  transition: background-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ps-menu-btn:hover {
+  background: var(--ps-chip);
+}
+
+.ps-menu-btn:active {
+  transform: scale(0.95);
+}
+
+/* 顶栏右侧的站点标识(提示符 + logo + 名称) */
+.ps-topbar-brand {
   display: flex;
   align-items: center;
   gap: 9px;
-  flex-shrink: 0;
   min-width: 0;
+  margin-left: auto;
   color: var(--ps-ink);
   text-decoration: none;
 }
 
-.ps-brand:focus-visible {
+.ps-topbar-brand:focus-visible {
+  outline: 2px solid var(--ps-accent);
+  outline-offset: 2px;
+}
+
+.ps-topbar-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.ps-mask {
+  display: none;
+}
+
+/* 侧栏站点头:提示符 + logo + 站点名 */
+.ps-site {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 4px 6px;
+  color: var(--ps-ink);
+  text-decoration: none;
+}
+
+.ps-site:hover .ps-site-name {
+  color: var(--ps-accent);
+}
+
+.ps-site:focus-visible {
   outline: 2px solid var(--ps-accent);
   outline-offset: 2px;
 }
@@ -100,7 +150,7 @@ body {
   object-fit: contain;
 }
 
-.ps-brand-text {
+.ps-topbar-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -116,48 +166,149 @@ body {
   white-space: nowrap;
 }
 
-.ps-brand-desc {
-  overflow: hidden;
+.ps-site-desc {
+  margin: 10px 0 0;
+  padding: 0 6px;
   font-size: 11px;
+  line-height: 1.6;
   color: var(--ps-ink-3);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* ---------- 导航:横向命令 + 下拉面板 ---------- */
+/* ---------- 布局 ---------- */
+
+.ps-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- 侧栏:文档列表 ---------- */
+
+.ps-sidebar {
+  width: var(--ps-sidebar-w, 250px);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 20px 14px 32px;
+  background: var(--ps-surface);
+  border-right: 1px solid var(--ps-line);
+}
+
+.ps-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- 侧栏导航 ---------- */
 
 .ps-nav {
-  min-width: 0;
-  margin-left: auto;
+  margin-top: 20px;
 }
 
 .ps-nav-list {
-  display: flex;
-  align-items: center;
-  gap: 2px;
   list-style: none;
   margin: 0;
   padding: 0;
-  /* 顶层项超出命令条宽度时横向滚动,保证全部文章可达 */
-  overflow-x: auto;
-  scrollbar-width: none;
 }
 
-.ps-nav-list::-webkit-scrollbar {
-  display: none;
+.ps-nav-list .ps-nav-list {
+  margin: 0 0 0 7px;
+  padding: 2px 0 6px 10px;
+  border-left: 1px solid var(--ps-line);
 }
 
-.ps-nav-item {
+.ps-nav-dir-wrap {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.ps-nav-dir-wrap .ps-nav-dir {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 折叠箭头:展开时转向 */
+.ps-nav-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-right: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ps-ink-3);
+  cursor: pointer;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1), color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ps-nav-caret:hover {
+  background: var(--ps-chip);
+  color: var(--ps-ink);
+}
+
+.ps-nav-caret svg {
+  transition: transform 300ms cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+.ps-nav-item.open > .ps-nav-dir-wrap .ps-nav-caret svg {
+  transform: rotate(90deg);
+}
+
+/* 子目录折叠展开:grid-rows 非线性过渡 */
+.ps-nav-sub {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 320ms cubic-bezier(0.3, 1.06, 0.4, 1);
+}
+
+.ps-nav-item.open > .ps-nav-sub {
+  grid-template-rows: 1fr;
+}
+
+.ps-nav-sub-in {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.ps-nav-dir {
+  overflow: hidden;
+  padding: 5px 8px 1px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ps-ink-3);
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+a.ps-nav-dir {
+  color: var(--ps-ink-2);
+}
+
+a.ps-nav-dir:hover {
+  color: var(--ps-accent);
+}
+
+a.ps-nav-dir.current,
+.ps-nav-dir.current {
+  color: var(--ps-accent);
 }
 
 .ps-nav-link {
   display: block;
-  padding: 6px 11px;
+  overflow: hidden;
+  padding: 5px 8px;
   font-size: 13px;
   color: var(--ps-ink-2);
   text-decoration: none;
   white-space: nowrap;
+  text-overflow: ellipsis;
   transition: color 130ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -165,123 +316,17 @@ body {
   color: var(--ps-accent);
 }
 
+/* 当前页:命令行光标三角前缀 */
 .ps-nav-link.current {
   color: var(--ps-accent);
 }
 
-/* 当前链接前缀:命令行光标三角 */
 .ps-nav-link.current::before {
   content: "▸ ";
   color: var(--ps-accent);
 }
 
-.ps-nav-dir {
-  position: relative;
-}
-
-.ps-nav-dir-summary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
-  font-size: 13px;
-  color: var(--ps-ink-2);
-  white-space: nowrap;
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
-  transition: color 130ms cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.ps-nav-dir-summary::-webkit-details-marker {
-  display: none;
-}
-
-.ps-nav-dir-summary:hover,
-.ps-nav-dir[open] > .ps-nav-dir-summary {
-  color: var(--ps-accent);
-}
-
-.ps-nav-dir-summary.current {
-  color: var(--ps-accent);
-}
-
-.ps-nav-caret {
-  font-size: 10px;
-  color: var(--ps-ink-3);
-  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.ps-nav-dir[open] > .ps-nav-dir-summary .ps-nav-caret {
-  transform: rotate(180deg);
-}
-
-/* 顶层下拉面板:固定于命令条下方全宽弹出,不被滚动容器裁剪 */
-.ps-nav-dir > .ps-nav-children {
-  display: none;
-  position: fixed;
-  top: var(--ps-topbar-h);
-  left: 0;
-  right: 0;
-  padding: 6px 20px;
-  background: var(--ps-surface);
-  border: 1px solid var(--ps-line);
-  border-top: none;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.ps-nav-dir[open] > .ps-nav-children {
-  display: block;
-}
-
-/* 面板内(含嵌套层):纵向列表,子目录原生开合 */
-.ps-nav-children .ps-nav-list {
-  display: block;
-  overflow: visible;
-}
-
-.ps-nav-children .ps-nav-item {
-  margin: 0;
-}
-
-.ps-nav-children .ps-nav-link {
-  padding: 6px 10px;
-  white-space: normal;
-}
-
-.ps-nav-children .ps-nav-link.current::before {
-  content: "▸ ";
-}
-
-/* 面板内子目录:静态文档流,点击开合 */
-.ps-nav-children .ps-nav-dir {
-  position: static;
-}
-
-.ps-nav-children .ps-nav-dir-summary {
-  padding: 6px 10px;
-  white-space: normal;
-}
-
-.ps-nav-children .ps-nav-dir > .ps-nav-children {
-  display: none;
-  position: static;
-  min-width: 0;
-  padding: 0 0 2px 16px;
-  border: none;
-  border-left: 1px solid var(--ps-line);
-  box-shadow: none;
-}
-
-.ps-nav-children .ps-nav-dir[open] > .ps-nav-children {
-  display: block;
-}
-
 /* ---------- 正文 ---------- */
-
-.ps-main {
-  min-width: 0;
-}
 
 .ps-doc {
   max-width: var(--ps-doc-w, 780px);
@@ -638,17 +683,109 @@ a.ps-home-link:hover {
 
 /* ---------- 响应式:窄屏收窄命令条 ---------- */
 
-@media (max-width: 720px) {
-  .ps-topbar {
-    gap: 10px;
-    padding: 0 12px;
+@media (max-width: 900px) {
+  .ps-shell {
+    display: block;
+    /* 给固定顶栏让位,避免按钮遮挡内容 */
+    padding-top: var(--ps-topbar-h);
   }
 
-  .ps-brand-desc {
-    display: none;
+  /* 顶栏:菜单按钮居左,站点标识居右 */
+  .ps-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: var(--ps-topbar-h);
+    padding: 0 12px;
+    background: var(--ps-surface);
+    border-bottom: 1px solid var(--ps-line);
+  }
+
+  .ps-menu-btn {
+    display: flex;
+  }
+
+  /* 当前页路径:菜单按钮右侧,过长时逐级省略 */
+  .ps-crumbs {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: 6px;
+    overflow: hidden;
+    font-size: 11.5px;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: var(--ps-ink-3);
+  }
+
+  .ps-crumb-item {
+    min-width: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ps-crumb-current {
+    flex-shrink: 0;
+    color: var(--ps-accent);
+  }
+
+  .ps-crumb-sep {
+    flex-shrink: 0;
+    opacity: 0.55;
+  }
+
+  /* 文档列表默认藏在左侧,点顶栏按钮弹出 */
+  .ps-sidebar {
+    position: fixed;
+    top: var(--ps-topbar-h);
+    left: 0;
+    bottom: 0;
+    z-index: 60;
+    width: min(84vw, 320px);
+    max-height: none;
+    padding-top: 20px;
+    transform: translateX(-104%);
+    transition: transform 280ms cubic-bezier(0.23, 1, 0.32, 1);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.55);
+  }
+
+  .ps-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .ps-mask {
+    display: block;
+    position: fixed;
+    top: var(--ps-topbar-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .ps-mask.show {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .ps-doc {
     padding: 30px 16px 60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-sidebar,
+  .ps-mask {
+    transition: none;
   }
 }
