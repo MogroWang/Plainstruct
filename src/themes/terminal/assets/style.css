@@ -138,8 +138,13 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
-  /* 宽屏不裁剪:下拉面板超出命令条也需要可见 */
-  overflow: visible;
+  /* 顶层项超出命令条宽度时横向滚动,保证全部文章可达 */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ps-nav-list::-webkit-scrollbar {
+  display: none;
 }
 
 .ps-nav-item {
@@ -211,16 +216,17 @@ body {
   transform: rotate(180deg);
 }
 
-/* 顶层下拉面板:绝对定位于命令条下方 */
+/* 顶层下拉面板:固定于命令条下方全宽弹出,不被滚动容器裁剪 */
 .ps-nav-dir > .ps-nav-children {
   display: none;
-  position: absolute;
-  top: 100%;
+  position: fixed;
+  top: var(--ps-topbar-h);
+  left: 0;
   right: 0;
-  min-width: 220px;
-  padding: 6px;
+  padding: 6px 20px;
   background: var(--ps-surface);
   border: 1px solid var(--ps-line);
+  border-top: none;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
@@ -640,24 +646,6 @@ a.ps-home-link:hover {
 
   .ps-brand-desc {
     display: none;
-  }
-
-  /* 窄屏导航横向滚动;下拉面板改从命令条下方全宽弹出,避免被滚动容器裁剪 */
-  .ps-nav-list {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .ps-nav-list::-webkit-scrollbar {
-    display: none;
-  }
-
-  .ps-nav-dir > .ps-nav-children {
-    position: fixed;
-    top: var(--ps-topbar-h);
-    left: 0;
-    right: 0;
-    border-top: none;
   }
 
   .ps-doc {

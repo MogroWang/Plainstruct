@@ -274,7 +274,7 @@ export const mock = {
     ensureInit();
     await delay();
     return {
-      version: "1.0.0",
+      version: __APP_VERSION__,
       platform: "browser",
       appDataDir: "(browser)",
       settings,
@@ -607,10 +607,9 @@ export const mock = {
 
   async checkUpdate(): Promise<UpdateInfo> {
     await delay(400);
-    const version = "1.0.0";
     return {
-      currentVersion: version,
-      latestVersion: version,
+      currentVersion: __APP_VERSION__,
+      latestVersion: __APP_VERSION__,
       hasUpdate: false,
       releaseUrl: "https://github.com/MogroWang/Plainstruct/releases/latest",
       releaseNotes: "",

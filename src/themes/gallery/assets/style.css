@@ -106,8 +106,13 @@ body.font-custom {
   list-style: none;
   margin: 0;
   padding: 0;
-  /* 宽屏不裁剪:下拉卡片超出导航条也需要可见 */
-  overflow: visible;
+  /* 顶层项超出导航条宽度时横向滚动,保证全部文章可达 */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ps-nav-list::-webkit-scrollbar {
+  display: none;
 }
 
 .ps-nav-item {
@@ -187,17 +192,18 @@ body.font-custom {
   transform: rotate(180deg);
 }
 
-/* 顶层下拉面板:悬浮卡片 */
+/* 顶层下拉面板:固定于导航条下方全宽弹出,不被滚动容器裁剪 */
 .ps-nav-dir > .ps-nav-children {
   display: none;
-  position: absolute;
-  top: calc(100% + 10px);
+  position: fixed;
+  top: var(--ps-topbar-h);
+  left: 0;
   right: 0;
-  min-width: 230px;
-  padding: 8px;
+  padding: 8px clamp(16px, 4vw, 36px);
   background: var(--ps-card);
   border: 1px solid var(--ps-line);
-  border-radius: 16px;
+  border-top: none;
+  border-radius: 0 0 16px 16px;
   box-shadow: var(--ps-shadow-lift);
   animation: ps-drop-in 200ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
@@ -648,25 +654,6 @@ a.ps-home-link:hover {
 @media (max-width: 720px) {
   .ps-topbar {
     gap: 10px;
-  }
-
-  /* 窄屏导航横向滚动;下拉卡片改从导航条下方全宽弹出,避免被滚动容器裁剪 */
-  .ps-nav-list {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .ps-nav-list::-webkit-scrollbar {
-    display: none;
-  }
-
-  .ps-nav-dir > .ps-nav-children {
-    position: fixed;
-    top: var(--ps-topbar-h);
-    left: 0;
-    right: 0;
-    border-radius: 0 0 16px 16px;
-    border-top: none;
   }
 
   .ps-doc {
