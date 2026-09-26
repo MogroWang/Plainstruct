@@ -31,6 +31,7 @@ export interface EditorPrefs {
   editorWhitespace?: boolean;
   editorBreakKey?: EditorBreakKey;
   editorIndentKey?: EditorIndentKey;
+  editorIndentWidth?: number;
 }
 
 /** 常用字体栈(与素构站点主题一致) */
@@ -70,6 +71,7 @@ export const useAppStore = defineStore("app", {
           editorWhitespace: true,
           editorBreakKey: "enter",
           editorIndentKey: "tab",
+          editorIndentWidth: 2,
         }
       );
     },

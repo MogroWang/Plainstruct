@@ -30,6 +30,8 @@ export interface AppSettings {
   editorBreakKey?: EditorBreakKey;
   /** 首行缩进触发键,默认 Tab */
   editorIndentKey?: EditorIndentKey;
+  /** 每次缩进添加的全角空格数量(中文常用 2),默认 2 */
+  editorIndentWidth?: number;
 }
 
 export interface RecentSite {

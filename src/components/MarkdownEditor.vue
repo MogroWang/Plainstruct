@@ -240,43 +240,43 @@ function toggleQuote() {
 
 /* ---------- 中文写作格式 ---------- */
 
-/** 段首缩进:两个全角空格,中文首行缩进习惯 */
-const INDENT = "　　";
+/** 段首缩进符:单个全角空格;数量由设置决定(中文常用 2 个) */
+const INDENT = "　";
 /** 结构性行(列表/引用/标题/表格/围栏)不做首行缩进,避免破坏 Markdown 结构 */
 const BLOCK_LINE_RE = /^(?:\s*(?:[-*+]|\d+[.)])\s|>|#{1,6}\s|\||\s*```)/;
 
-/** 段落首行判定:选区首行,或前一行为空行的行 */
-function isParaStart(lines: string[], i: number): boolean {
-  return i === 0 || lines[i - 1].trim() === "";
+/** 每次缩进添加的全角空格数量(设置项,中文常用 2) */
+function indentWidth(): number {
+  const n = Math.floor(Number(app.settings.editorIndentWidth));
+  return Number.isFinite(n) ? Math.min(4, Math.max(1, n)) : 2;
 }
 
-function toggleIndent() {
+/** 添加缩进:对选区覆盖的每一行行首插入 N 个全角空格 */
+function indentLines() {
   if (!view) return;
-  const { state } = view;
-  const range = state.selection.main;
-  const first = state.doc.lineAt(range.from).number;
-  const last = state.doc.lineAt(range.to).number;
-  const lines: string[] = [];
-  for (let n = first; n <= last; n++) lines.push(state.doc.line(n).text);
-  const eligible = lines.map(
-    (l, i) => isParaStart(lines, i) && l.trim() !== "" && !BLOCK_LINE_RE.test(l),
-  );
-  const allIndented = lines.every((l, i) => !eligible[i] || l.startsWith(INDENT));
-  transformLines((l, i) => {
-    if (!eligible[i]) return l;
-    if (allIndented) return l.slice(INDENT.length);
-    return l.startsWith(INDENT) ? l : INDENT + l;
+  const unit = INDENT.repeat(indentWidth());
+  transformLines((l) => (BLOCK_LINE_RE.test(l) ? l : unit + l));
+}
+
+/** 移除缩进:每行行首剥掉一层缩进(Shift+Tab) */
+function outdentLines() {
+  if (!view) return;
+  const unit = INDENT.repeat(indentWidth());
+  transformLines((l) => {
+    if (l.startsWith(unit)) return l.slice(unit.length);
+    if (l.startsWith(INDENT)) return l.slice(INDENT.length);
+    return l;
   });
 }
 
-/** 硬换行:Markdown 行尾两空格 + 换行;前方已有两空格或处于行首时直接换行 */
+/** 硬换行:Markdown 行尾两空格 + 换行;前方已是两空格时只换行,空行与行首同样生效 */
 function insertBreak() {
   if (!view) return;
   const { state } = view;
   const range = state.selection.main;
   const line = state.doc.lineAt(range.to);
   const before = state.sliceDoc(Math.max(line.from, range.to - 2), range.to);
-  const insert = (range.to === line.from || before === "  " ? "" : "  ") + "\n";
+  const insert = (before === "  " ? "" : "  ") + "\n";
   commit(range.from, range.to, insert, range.from + insert.length, range.from + insert.length);
 }
 
@@ -472,22 +472,21 @@ const wsMarkers = ViewPlugin.fromClass(WsMarkerView, {
 
 /* ---------- 写作键位(换行/缩进,随设置重配) ---------- */
 
-/** Tab 首行缩进:结构行(列表/引用/表格/围栏/标题)交给默认缩进(嵌套),空行直接落缩进 */
-function tabIndent(): boolean {
+/** Tab 添加缩进:结构行(列表/引用/表格/围栏/标题)交给默认缩进(嵌套) */
+function indentTab(): boolean {
   if (!view) return false;
-  const state = view.state;
-  const line = state.doc.lineAt(state.selection.main.head);
+  const line = view.state.doc.lineAt(view.state.selection.main.head);
   if (BLOCK_LINE_RE.test(line.text)) return false;
-  if (line.text.trim() === "") {
-    view.dispatch({
-      changes: { from: line.from, insert: "　　" },
-      selection: { anchor: line.from + 2 },
-      scrollIntoView: true,
-    });
-    view.focus();
-    return true;
-  }
-  toggleIndent();
+  indentLines();
+  return true;
+}
+
+/** Shift+Tab 移除缩进:结构行交给默认反缩进 */
+function outdentTab(): boolean {
+  if (!view) return false;
+  const line = view.state.doc.lineAt(view.state.selection.main.head);
+  if (BLOCK_LINE_RE.test(line.text)) return false;
+  outdentLines();
   return true;
 }
 
@@ -504,10 +503,11 @@ function makeWritingExtensions(): Extension[] {
     keys.push({ key: "Mod-Enter", run: () => (insertBreak(), true) });
   }
   if (indentKey === "tab") {
-    keys.push({ key: "Tab", run: tabIndent });
-    keys.push({ key: "Mod-Shift-i", run: () => (toggleIndent(), true) });
+    keys.push({ key: "Tab", run: indentTab });
+    keys.push({ key: "Shift-Tab", run: outdentTab });
+    keys.push({ key: "Mod-Shift-i", run: () => (indentLines(), true) });
   } else if (indentKey === "modShiftI") {
-    keys.push({ key: "Mod-Shift-i", run: () => (toggleIndent(), true) });
+    keys.push({ key: "Mod-Shift-i", run: () => (indentLines(), true) });
   }
   if (keys.length) exts.push(keymap.of(keys));
   if (app.settings.editorWhitespace ?? true) exts.push(wsMarkers);
@@ -571,7 +571,12 @@ onMounted(() => {
 
 // 设置变更即时重配写作键位与空白标记
 watch(
-  () => [app.settings.editorBreakKey, app.settings.editorIndentKey, app.settings.editorWhitespace],
+  () => [
+    app.settings.editorBreakKey,
+    app.settings.editorIndentKey,
+    app.settings.editorWhitespace,
+    app.settings.editorIndentWidth,
+  ],
   () => {
     view?.dispatch({ effects: writingComp.reconfigure(makeWritingExtensions()) });
   },
@@ -645,7 +650,7 @@ defineExpose({
         <AppIcon name="minus" :size="15" />
       </button>
       <span class="tb-sep" />
-      <button class="tb-btn" :title="indentTitle" @click="toggleIndent">
+      <button class="tb-btn" :title="indentTitle" @click="indentLines">
         <AppIcon name="indent" :size="15" />
       </button>
       <button class="tb-btn" :title="breakTitle" @click="insertBreak">

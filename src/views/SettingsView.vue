@@ -58,6 +58,15 @@ const indentKeyModel = computed({
   set: (v: EditorIndentKey) => void app.setEditorPrefs({ editorIndentKey: v }),
 });
 
+const indentWidthOptions = computed<{ value: string; label: string }[]>(() =>
+  [1, 2, 3, 4].map((n) => ({ value: String(n), label: t("settings.indentWidthN", { n }) })),
+);
+
+const indentWidthModel = computed({
+  get: () => String(app.settings.editorIndentWidth ?? 2),
+  set: (v: string) => void app.setEditorPrefs({ editorIndentWidth: Number(v) }),
+});
+
 /* ---------- 个性化(主题与字体) ---------- */
 
 /** 跟随系统的预览色板:浅色/深色对半拼接,线条与文字用两侧均可读的中性色 */
@@ -288,6 +297,13 @@ function openRelease(url: string) {
                     <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.editorIndentKeyHint") }}</p>
                   </div>
                   <SelectMenu v-model="indentKeyModel" :options="indentKeyOptions" align="right" class="shrink-0" />
+                </div>
+                <div class="settings-row" style="--i: 3">
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-medium">{{ t("settings.editorIndentWidth") }}</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.editorIndentWidthHint") }}</p>
+                  </div>
+                  <SelectMenu v-model="indentWidthModel" :options="indentWidthOptions" align="right" class="shrink-0" />
                 </div>
               </div>
             </template>
