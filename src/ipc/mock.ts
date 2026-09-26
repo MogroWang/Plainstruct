@@ -289,15 +289,17 @@ export const mock = {
     return settings;
   },
 
-  async createSite(dir: string, name: string, description?: string): Promise<SiteConfig> {
+  async createSite(dir: string, name: string, description?: string, siteType?: string): Promise<SiteConfig> {
     ensureInit();
     if ([...files.keys()].some((p) => p.startsWith(`${dir}/`)) || files.has(dir)) {
       throw new Error("occupied");
     }
+    const type = siteType === "blog" ? "blog" : "docs";
     writeConfig(dir, {
       name,
       description,
-      theme: { id: "plain-light", source: "builtin", config: {} },
+      siteType: type,
+      theme: { id: type === "blog" ? "blog-light" : "plain-light", source: "builtin", config: {} },
     });
     files.set(
       `${dir}/content/index.md`,
@@ -362,13 +364,15 @@ export const mock = {
   },
 
   async createDoc(dir: string, name: string, title?: string): Promise<string> {
-    let rel = dir ? `${dir}/${name}.md` : `${name}.md`;
+    // 与 Rust 端一致:用户已带 .md 后缀时不重复追加
+    const base = name.toLowerCase().endsWith(".md") ? name.slice(0, -3) : name;
+    let rel = dir ? `${dir}/${base}.md` : `${base}.md`;
     let i = 2;
     while (files.has(`${currentRoot}/content/${rel}`)) {
-      rel = dir ? `${dir}/${name}-${i}.md` : `${name}-${i}.md`;
+      rel = dir ? `${dir}/${base}-${i}.md` : `${base}-${i}.md`;
       i++;
     }
-    const docTitle = title?.trim() || name;
+    const docTitle = title?.trim() || base;
     files.set(
       `${currentRoot}/content/${rel}`,
       `---\ntitle: ${docTitle}\n---\n\n# ${docTitle}\n\n正文。\n`,
@@ -493,6 +497,7 @@ export const mock = {
         author: meta.author ? String(meta.author) : undefined,
         description: meta.description ? String(meta.description) : undefined,
         config: (meta.config as ThemeMeta["config"]) ?? [],
+        siteType: meta.type === "blog" ? "blog" : meta.type === "docs" ? "docs" : undefined,
         source: "custom",
       });
     }
@@ -529,6 +534,7 @@ export const mock = {
       author: meta.author ? String(meta.author) : undefined,
       description: meta.description ? String(meta.description) : undefined,
       config: (meta.config as ThemeMeta["config"]) ?? [],
+      siteType: meta.type === "blog" ? "blog" : meta.type === "docs" ? "docs" : undefined,
       source: "custom",
     };
   },

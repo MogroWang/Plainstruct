@@ -118,7 +118,7 @@ function onAskCancel() {
 }
 
 async function duplicateBuiltin() {
-  const base = theme.builtinMetas[0];
+  const base = theme.builtinForSite[0];
   const name = await askName(t("theme.newFromBuiltin"), base?.name ?? "");
   if (!name || !base) return;
   try {
@@ -278,7 +278,7 @@ async function resetConfig() {
           <h2 class="field-label mb-1">{{ t("theme.builtin") }}</h2>
           <div class="flex flex-col gap-1">
             <div
-              v-for="meta in theme.builtinMetas"
+              v-for="meta in theme.builtinForSite"
               :key="meta.id"
               class="theme-item"
               :class="{ current: isActive(meta) }"
@@ -313,12 +313,12 @@ async function resetConfig() {
           </div>
 
           <h2 class="field-label mb-1 mt-5">{{ t("theme.custom") }}</h2>
-          <p v-if="!theme.customMetas.length" class="rounded-lg border border-dashed border-line px-3 py-4 text-[12px] leading-relaxed text-ink-3">
+          <p v-if="!theme.customForSite.length" class="rounded-lg border border-dashed border-line px-3 py-4 text-[12px] leading-relaxed text-ink-3">
             {{ t("theme.noCustom") }}
           </p>
           <div v-else class="flex flex-col gap-1">
             <div
-              v-for="meta in theme.customMetas"
+              v-for="meta in theme.customForSite"
               :key="meta.id"
               class="theme-item"
               :class="{ current: isActive(meta) }"

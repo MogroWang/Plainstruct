@@ -26,10 +26,28 @@ import galleryLayout from "./gallery/templates/layout.hbs?raw";
 import galleryPage from "./gallery/templates/page.hbs?raw";
 import galleryNav from "./gallery/partials/nav.hbs?raw";
 import galleryCss from "./gallery/assets/style.css?raw";
+import blogLightMeta from "./blog-light/theme.json";
+import blogLightLayout from "./blog-light/templates/layout.hbs?raw";
+import blogLightPage from "./blog-light/templates/page.hbs?raw";
+import blogLightCss from "./blog-light/assets/style.css?raw";
+import blogDarkMeta from "./blog-dark/theme.json";
+import blogDarkLayout from "./blog-dark/templates/layout.hbs?raw";
+import blogDarkPage from "./blog-dark/templates/page.hbs?raw";
+import blogDarkCss from "./blog-dark/assets/style.css?raw";
+
+/** theme.json 内写作 "type",元数据契约字段为 siteType,导入时统一映射 */
+function toMeta(meta: Record<string, unknown>): ThemeMeta {
+  const { type, ...rest } = meta;
+  return {
+    ...(rest as unknown as ThemeMeta),
+    siteType: type === "blog" ? "blog" : type === "docs" ? "docs" : undefined,
+    source: "builtin",
+  };
+}
 
 export const builtinThemes: ThemeBundle[] = [
   {
-    meta: { ...(lightMeta as unknown as ThemeMeta), source: "builtin" },
+    meta: toMeta(lightMeta),
     files: {
       "theme.json": JSON.stringify(lightMeta, null, 2),
       "templates/layout.hbs": lightLayout,
@@ -39,7 +57,7 @@ export const builtinThemes: ThemeBundle[] = [
     },
   },
   {
-    meta: { ...(darkMeta as unknown as ThemeMeta), source: "builtin" },
+    meta: toMeta(darkMeta),
     files: {
       "theme.json": JSON.stringify(darkMeta, null, 2),
       "templates/layout.hbs": darkLayout,
@@ -49,7 +67,7 @@ export const builtinThemes: ThemeBundle[] = [
     },
   },
   {
-    meta: { ...(inkMeta as unknown as ThemeMeta), source: "builtin" },
+    meta: toMeta(inkMeta),
     files: {
       "theme.json": JSON.stringify(inkMeta, null, 2),
       "templates/layout.hbs": inkLayout,
@@ -59,7 +77,7 @@ export const builtinThemes: ThemeBundle[] = [
     },
   },
   {
-    meta: { ...(terminalMeta as unknown as ThemeMeta), source: "builtin" },
+    meta: toMeta(terminalMeta),
     files: {
       "theme.json": JSON.stringify(terminalMeta, null, 2),
       "templates/layout.hbs": terminalLayout,
@@ -69,13 +87,31 @@ export const builtinThemes: ThemeBundle[] = [
     },
   },
   {
-    meta: { ...(galleryMeta as unknown as ThemeMeta), source: "builtin" },
+    meta: toMeta(galleryMeta),
     files: {
       "theme.json": JSON.stringify(galleryMeta, null, 2),
       "templates/layout.hbs": galleryLayout,
       "templates/page.hbs": galleryPage,
       "partials/nav.hbs": galleryNav,
       "assets/style.css": galleryCss,
+    },
+  },
+  {
+    meta: toMeta(blogLightMeta),
+    files: {
+      "theme.json": JSON.stringify(blogLightMeta, null, 2),
+      "templates/layout.hbs": blogLightLayout,
+      "templates/page.hbs": blogLightPage,
+      "assets/style.css": blogLightCss,
+    },
+  },
+  {
+    meta: toMeta(blogDarkMeta),
+    files: {
+      "theme.json": JSON.stringify(blogDarkMeta, null, 2),
+      "templates/layout.hbs": blogDarkLayout,
+      "templates/page.hbs": blogDarkPage,
+      "assets/style.css": blogDarkCss,
     },
   },
 ];

@@ -1,9 +1,11 @@
-/** 极简 front-matter:文件起始 --- 包围块,支持 title / order / description */
+/** 极简 front-matter:文件起始 --- 包围块,支持 title / order / description / date */
 
 export interface FrontMatter {
   title?: string;
   order?: number;
   description?: string;
+  /** 发布日期,如 2026-09-26;原样保留,展示格式由主题决定 */
+  date?: string;
 }
 
 export interface ParsedDoc {
@@ -34,6 +36,7 @@ export function parseFrontMatter(src: string): ParsedDoc {
       const n = Number(value);
       if (Number.isFinite(n)) data.order = n;
     } else if (key === "description") data.description = value;
+    else if (key === "date") data.date = value;
   }
   // 结束围栏缺失时视为普通正文,不吞内容
   if (end === -1) return { data: {}, body: src };

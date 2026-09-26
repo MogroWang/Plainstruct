@@ -40,8 +40,8 @@ export const useSiteStore = defineStore("site", {
   },
 
   actions: {
-    async create(dir: string, name: string, description?: string) {
-      this.config = await ipc.createSite(dir, name, description);
+    async create(dir: string, name: string, description?: string, siteType?: string) {
+      this.config = await ipc.createSite(dir, name, description, siteType);
       this.root = dir;
       this.open = true;
       await this.afterOpen();

@@ -7,17 +7,18 @@
 
 # Plainstruct
 
-A local-first static wiki site creator. Write Markdown in folders, build with one click, preview locally, and publish to GitHub Pages - no terminal, no backend.
+A local-first static site creator for both documentation and blogs. Write Markdown in folders, build with one click, preview locally, and publish to GitHub Pages - no terminal, no backend.
 
 [中文](./README.md) · [Changelog](./changelog.md)
 
 ## Features
 
+- **Two site types** - choose **Documentation** (sidebar navigation, for wikis and product manuals) or **Blog** (the home page is a date-sorted post stream, article pages get a table of contents) when creating a site; the type can be switched in site settings later, and the theme list is filtered by type automatically
 - **Content management** - tree management of folders and Markdown documents: create (with custom title) / rename / delete (to system trash) / import; drag & drop moves with an insertion indicator (row edge = move next to that row's directory, folder middle = move into the folder), and dragging to a row's top/bottom edge **manually reorders** (reorder within a directory or insert across directories, multi-selection moves as a group) - the order is saved in `.plainstruct/order.json`, and the built site's navigation, directory pages and prev/next links all follow it; multi-select via Shift range and Ctrl/⌘ toggle, batch move by drag & drop, folders auto-expand on hover; dedicated right-click menus for the file tree (new / import / rename / delete) and the editor & inputs (cut / copy / paste / select all)
-- **Live editing** - CodeMirror 6 editor side-by-side with rendered preview, proportional scroll sync, autosave; a formatting toolbar for headings, bold, italic, strikethrough, quote, lists, link, image, table and code blocks, with keyboard shortcuts and automatic list continuation; the preview shares the exact rendering pipeline with the build - what you see is what you ship
+- **Live editing** - CodeMirror 6 editor side-by-side with rendered preview, proportional scroll sync, autosave; a formatting toolbar for headings, bold, italic, strikethrough, quote, lists, link, image, table, code blocks, first-line indent and hard line break; full shortcuts: `⌘/Ctrl+1..6` headings, `⌘B` bold, `⌘I` italic, `⌘E` inline code, `⌘K` link, `⌘⇧X` strikethrough, `⌘⇧C` code block, `⌘⇧7/8/9` ordered/bullet/quote, `⌘⇧T` task list, `⌘⇧I` first-line indent (two full-width spaces, skips list/quote/table lines), `⌘Enter` hard break (Markdown trailing double space), plus automatic list continuation; the preview shares the exact rendering pipeline with the build - what you see is what you ship
 - **Site settings** - name, description, logo, site language (written to `<html lang>`, preset or custom locale codes) and browser title format (`{page} · {site}` placeholders); the site logo also serves as the favicon across all pages
 - **One-click build** - output is plain static HTML; every internal link and asset is **relative**, so the site works on GitHub Pages project subpaths, custom domains, or opened from disk; folders without an index.md automatically get a generated directory listing page; a full link check runs at build time and broken links are listed in the report; the standalone preview window remembers its position & size and reloads in place on rebuild
-- **Theme system** - built-in light & dark themes, mobile-friendly (document list collapses into a drawer with a top bar showing the site logo, name, description and current page path), collapsible sidebar table of contents with cross-page memory, 9 page transition animation presets, optional "Created with Plainstruct" footer credit; visual settings panel (color / number / select / toggle); theme editor with code editing and live preview; themes import & export as ZIP
+- **Theme system** - seven built-in themes: documentation sites get "Plain · Light", "Plain · Dark" (sidebar layout), "Ink" (serif editorial), "Terminal" (command line) and "Gallery" (modern cards); blogs get "Journal · Light" and "Journal · Dark" (post stream + per-post TOC); every theme supports **body font switching** (system / serif / monospace / custom font-family); documents can display their front-matter date (toggleable per theme); collapsible sidebar table of contents with cross-page memory, 9 page transition animation presets, optional "Created with Plainstruct" footer credit; visual settings panel (color / number / select / toggle); theme editor with code editing and live preview; themes import & export as ZIP
 - **App appearance** - light / dark / follow-system app themes (dark is a warm-black palette), UI and editor fonts selectable between system default / serif / monospace / custom, applied instantly
 - **GitHub Pages publishing** - pushes the build as a **single atomic commit** via the GitHub API using a personal access token; creates repo / branch / Pages automatically - no Git required
 - **Update check** - one-click check in Settings against the latest GitHub Release, showing the new version, release notes and publish time
@@ -39,10 +40,10 @@ Download an installer for your platform from [GitHub Releases](https://github.co
 
 First run:
 
-1. "New site" - pick a name and an empty folder
-2. Create documents in the tree and start writing (declare title & description with a `---` front-matter block; drag a document to a row's top/bottom edge to reorder)
+1. "New site" - pick **Documentation** or **Blog**, a name, and an empty folder
+2. Create documents in the tree and start writing (declare title / description / date with a `---` front-matter block; drag a document to a row's top/bottom edge to reorder)
 3. Build on the Build page and preview the final site
-4. Pick or customize a theme on the Theme page
+4. Pick or customize a theme on the Theme page (the list is filtered by site type)
 5. Fill in your GitHub username / repo / token on the Publish page and publish
 
 ### Access token
@@ -68,7 +69,9 @@ Create one at [GitHub Settings -> Developer settings -> Personal access tokens](
 
 **Path mapping**: `index.md -> index.html`, `foo.md -> foo.html`, `foo/index.md -> foo/index.html`. Link between documents with plain relative `.md` paths - they are rewritten to `.html` at build time. Folders without an `index.md` get an auto-generated directory listing page (`<folder>/index.html`) at build time, listing all documents and subfolders; folder titles in the navigation and directory pages are clickable links.
 
-**Front-matter** fields: `title` and `description`. Document ordering does not rely on front-matter: drag a document to a row's top/bottom edge in the tree to arrange it manually - the order is saved in `.plainstruct/order.json` (the legacy front-matter `order` field no longer affects ordering).
+**Front-matter** fields: `title`, `description` and `date` (e.g. `2026-09-26`, shown as-is, toggleable per theme; blog post streams are sorted by date descending, undated posts come last). Document ordering does not rely on front-matter: drag a document to a row's top/bottom edge in the tree to arrange it manually - the order is saved in `.plainstruct/order.json` (the legacy front-matter `order` field no longer affects ordering).
+
+On a **blog site** the home page is the post stream: each post shows title, date and description, sorted by `date` descending; article pages get a right-hand table of contents (extracted from h2/h3, highlighting the current section on scroll); if a root `index.md` exists its body renders above the stream and can serve as an announcement area.
 
 ## Theme development
 
@@ -93,6 +96,7 @@ theme.zip
   "version": "1.0.0",
   "author": "you",
   "description": "A theme",
+  "type": "docs",
   "config": [
     { "key": "accentColor", "label": "Accent", "type": "color", "default": "#333333" },
     { "key": "sidebarWidth", "label": "Sidebar width", "type": "number", "default": 260, "min": 200, "max": 360, "step": 10 },
@@ -102,7 +106,7 @@ theme.zip
 }
 ```
 
-Field types: `color` / `text` / `number` / `select` / `boolean`. The `config` array drives the visual settings panel automatically.
+Field types: `color` / `text` / `number` / `select` / `boolean`. The `config` array drives the visual settings panel automatically. `type` declares which site type the theme serves (`docs` / `blog`, default `docs`); the theme list is filtered by the current site's type.
 
 ### Template context
 
@@ -110,10 +114,12 @@ Available in `layout.hbs` and `page.hbs`:
 
 ```handlebars
 {{site.name}} {{site.description}} {{site.logo}}      {{!-- site info; logo is a page-relative URL --}}
-{{page.title}} {{page.description}}                    {{!-- current document --}}
+{{page.title}} {{page.description}} {{page.date}}     {{!-- current document; date from front-matter --}}
 {{{page.content}}}                                      {{!-- triple braces: rendered HTML --}}
-{{page.url}} {{page.relPrefix}}                        {{!-- output path / relative-root prefix --}}
+{{page.url}} {{page.relPrefix}} {{page.isHome}}       {{!-- output path / relative-root prefix / home flag --}}
+{{#each page.toc}} {{this.level}} {{this.text}} {{this.id}} {{/each}}   {{!-- per-page TOC (blog sites) --}}
 {{#each nav}} {{this.title}} {{this.url}} {{this.current}} {{this.children}} {{/each}}
+{{#each posts}} {{this.title}} {{this.url}} {{this.date}} {{this.description}} {{/each}}  {{!-- blog post stream --}}
 {{prev.title}} {{prev.url}} {{next.title}} {{next.url}}
 {{config.accentColor}}                                  {{!-- theme settings values --}}
 {{asset "style.css"}}                                   {{!-- asset URL, made relative per page depth --}}

@@ -23,6 +23,15 @@ body.font-serif {
   font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
 }
 
+body.font-system {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+
+body.font-mono {
+  font-family: var(--ps-font-mono);
+}
+
 /* 自定义字体:layout 在 body 上注入 --ps-font-body(font-family 栈) */
 body.font-custom {
   font-family: var(--ps-font-body, system-ui, sans-serif);
@@ -338,6 +347,13 @@ a.ps-nav-dir:hover {
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.25;
+}
+
+.ps-doc-date {
+  display: block;
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--ps-ink-3);
 }
 
 .ps-doc-desc {

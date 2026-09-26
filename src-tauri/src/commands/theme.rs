@@ -20,6 +20,9 @@ pub struct ThemeMeta {
     pub description: Option<String>,
     #[serde(default)]
     pub config: serde_json::Value,
+    /// 主题适用的站点类型:docs / blog,缺省 docs(兼容旧自定义主题)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub site_type: Option<String>,
     pub source: String,
 }
 
@@ -45,6 +48,7 @@ fn meta_from_dir(dir: &PathBuf, id: &str) -> ThemeMeta {
         author: value["author"].as_str().map(|s| s.to_string()),
         description: value["description"].as_str().map(|s| s.to_string()),
         config: value["config"].clone(),
+        site_type: value["type"].as_str().map(|s| s.to_string()),
         source: "custom".into(),
     }
 }

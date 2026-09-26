@@ -79,6 +79,8 @@ const paths: Record<string, string[]> = {
   ],
   table: ["M4 5h16v14H4z", "M12 5v14", "M4 10h16", "M4 15h16"],
   squareCode: ["M4 5h16v14H4z", "M10 10l-2 2 2 2", "M14 10l2 2-2 2"],
+  indent: ["M10 9l-3.5 3 3.5 3", "M11 6h9", "M11 12h9", "M11 18h9"],
+  wrapText: ["M4 6h16", "M4 12h13a3 3 0 1 1 0 6h-4", "M14 15l-3 3 3 3", "M4 18h7"],
 };
 </script>
 

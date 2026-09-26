@@ -5,6 +5,7 @@ import { useAppStore } from "@/stores/app";
 import { useSiteStore } from "@/stores/site";
 import { useUiStore } from "@/stores/ui";
 import { ipc } from "@/ipc/ipc";
+import type { SiteType } from "@/ipc/types";
 import { formatTime } from "@/lib/format";
 import AppIcon from "@/components/AppIcon.vue";
 
@@ -14,7 +15,7 @@ const site = useSiteStore();
 const ui = useUiStore();
 
 const showWizard = ref(false);
-const wizard = reactive({ name: "", description: "", folder: "" });
+const wizard = reactive({ name: "", description: "", folder: "", siteType: "docs" as SiteType });
 const wizardError = ref("");
 const creating = ref(false);
 
@@ -35,7 +36,7 @@ async function createSite() {
   creating.value = true;
   wizardError.value = "";
   try {
-    await site.create(wizard.folder, wizard.name.trim(), wizard.description.trim() || undefined);
+    await site.create(wizard.folder, wizard.name.trim(), wizard.description.trim() || undefined, wizard.siteType);
     showWizard.value = false;
   } catch (e) {
     const msg = ipc.errText(e);
@@ -126,6 +127,35 @@ async function openRecent(path: string) {
             </header>
             <div class="flex flex-col gap-4 px-6 pb-2">
               <div>
+                <label class="field-label">{{ t("wizard.siteType") }}</label>
+                <div class="type-cards">
+                  <button
+                    type="button"
+                    class="type-card"
+                    :class="{ active: wizard.siteType === 'docs' }"
+                    @click="wizard.siteType = 'docs'"
+                  >
+                    <AppIcon name="doc" :size="17" class="shrink-0" />
+                    <span class="min-w-0">
+                      <span class="block text-[13px] font-medium">{{ t("wizard.typeDocs") }}</span>
+                      <span class="block text-[11.5px] leading-snug text-ink-3">{{ t("wizard.typeDocsHint") }}</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="type-card"
+                    :class="{ active: wizard.siteType === 'blog' }"
+                    @click="wizard.siteType = 'blog'"
+                  >
+                    <AppIcon name="pencil" :size="17" class="shrink-0" />
+                    <span class="min-w-0">
+                      <span class="block text-[13px] font-medium">{{ t("wizard.typeBlog") }}</span>
+                      <span class="block text-[11.5px] leading-snug text-ink-3">{{ t("wizard.typeBlogHint") }}</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+              <div>
                 <label class="field-label">{{ t("wizard.name") }}</label>
                 <input
                   v-model="wizard.name"
@@ -188,5 +218,39 @@ async function openRecent(path: string) {
 }
 .recent-item:active {
   opacity: 0.8;
+}
+
+/* 站点类型选择:两枚等宽卡片,选中态用强调色描边,不用底色堆叠 */
+.type-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.type-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-ink-2);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-base) var(--ease-plain),
+    background-color var(--duration-base) var(--ease-plain),
+    color var(--duration-base) var(--ease-plain);
+}
+.type-card:hover {
+  background: var(--color-surface-2);
+}
+.type-card:active {
+  transform: scale(0.98);
+}
+.type-card.active {
+  border-color: var(--color-accent);
+  background: var(--color-surface-2);
+  color: var(--color-ink);
 }
 </style>

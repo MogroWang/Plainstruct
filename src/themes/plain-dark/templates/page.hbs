@@ -1,5 +1,6 @@
 <article class="ps-doc">
   {{#if page.title}}<h1 class="ps-doc-title">{{page.title}}</h1>{{/if}}
+  {{#if config.showDate}}{{#if page.date}}<time class="ps-doc-date">{{page.date}}</time>{{/if}}{{/if}}
   {{#if page.description}}<p class="ps-doc-desc">{{page.description}}</p>{{/if}}
   <div class="ps-doc-body">{{{page.content}}}</div>
   <nav class="ps-pager">

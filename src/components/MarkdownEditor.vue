@@ -10,13 +10,18 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as tg } from "@lezer/highlight";
 import { useEditorStore } from "@/stores/editor";
+import { useAppStore } from "@/stores/app";
 import { registerCmView, unregisterCmView } from "@/lib/contextMenu";
 import AppIcon from "@/components/AppIcon.vue";
 
 const { t } = useI18n();
 const editor = useEditorStore();
+const app = useAppStore();
 const host = ref<HTMLElement>();
 let view: EditorView | null = null;
+
+/** 快捷键提示里的主修饰键:mac 用 ⌘,其余显示 Ctrl */
+const mod = app.platform === "macos" ? "⌘" : "Ctrl";
 
 const plainHighlight = HighlightStyle.define([
   { tag: tg.heading, fontWeight: "600", color: "var(--color-ink)" },
@@ -216,6 +221,48 @@ function toggleQuote() {
   });
 }
 
+/* ---------- 中文写作格式 ---------- */
+
+/** 段首缩进:两个全角空格,中文首行缩进习惯 */
+const INDENT = "　　";
+/** 结构性行(列表/引用/标题/表格/围栏)不做首行缩进,避免破坏 Markdown 结构 */
+const BLOCK_LINE_RE = /^(?:\s*(?:[-*+]|\d+[.)])\s|>|#{1,6}\s|\||\s*```)/;
+
+/** 段落首行判定:选区首行,或前一行为空行的行 */
+function isParaStart(lines: string[], i: number): boolean {
+  return i === 0 || lines[i - 1].trim() === "";
+}
+
+function toggleIndent() {
+  if (!view) return;
+  const { state } = view;
+  const range = state.selection.main;
+  const first = state.doc.lineAt(range.from).number;
+  const last = state.doc.lineAt(range.to).number;
+  const lines: string[] = [];
+  for (let n = first; n <= last; n++) lines.push(state.doc.line(n).text);
+  const eligible = lines.map(
+    (l, i) => isParaStart(lines, i) && l.trim() !== "" && !BLOCK_LINE_RE.test(l),
+  );
+  const allIndented = lines.every((l, i) => !eligible[i] || l.startsWith(INDENT));
+  transformLines((l, i) => {
+    if (!eligible[i]) return l;
+    if (allIndented) return l.slice(INDENT.length);
+    return l.startsWith(INDENT) ? l : INDENT + l;
+  });
+}
+
+/** 硬换行:Markdown 行尾两空格 + 换行;前方已有两空格或处于行首时直接换行 */
+function insertBreak() {
+  if (!view) return;
+  const { state } = view;
+  const range = state.selection.main;
+  const line = state.doc.lineAt(range.to);
+  const before = state.sliceDoc(Math.max(line.from, range.to - 2), range.to);
+  const insert = (range.to === line.from || before === "  " ? "" : "  ") + "\n";
+  commit(range.from, range.to, insert, range.from + insert.length, range.from + insert.length);
+}
+
 function setHeading(level: number) {
   transformLines((l, _i, lines) => {
     const m = l.match(/^(#{1,6})\s+/);
@@ -358,6 +405,22 @@ onMounted(() => {
           },
           { key: "Mod-b", run: () => (wrapSelection("**"), true) },
           { key: "Mod-i", run: () => (wrapSelection("*"), true) },
+          { key: "Mod-1", run: () => (setHeading(1), true) },
+          { key: "Mod-2", run: () => (setHeading(2), true) },
+          { key: "Mod-3", run: () => (setHeading(3), true) },
+          { key: "Mod-4", run: () => (setHeading(4), true) },
+          { key: "Mod-5", run: () => (setHeading(5), true) },
+          { key: "Mod-6", run: () => (setHeading(6), true) },
+          { key: "Mod-e", run: () => (wrapSelection("`"), true) },
+          { key: "Mod-k", run: () => (insertLink(), true) },
+          { key: "Mod-Shift-x", run: () => (wrapSelection("~~"), true) },
+          { key: "Mod-Shift-c", run: () => (toggleCodeBlock(), true) },
+          { key: "Mod-Shift-9", run: () => (toggleQuote(), true) },
+          { key: "Mod-Shift-8", run: () => (toggleBullet(), true) },
+          { key: "Mod-Shift-7", run: () => (toggleOrdered(), true) },
+          { key: "Mod-Shift-t", run: () => (toggleTask(), true) },
+          { key: "Mod-Enter", run: () => (insertBreak(), true) },
+          { key: "Mod-Shift-i", run: () => (toggleIndent(), true) },
           { key: "Enter", run: continueList },
           ...defaultKeymap,
           ...historyKeymap,
@@ -406,37 +469,37 @@ defineExpose({
   <div class="flex h-full min-h-0 flex-col bg-surface">
     <!-- 格式工具栏:按钮溢出时自动换行,不出现横向滚动条 -->
     <div class="flex shrink-0 flex-wrap content-start items-center gap-0.5 border-b border-line px-2 py-[5px]">
-      <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 1 })" @click="setHeading(1)">H1</button>
-      <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 2 })" @click="setHeading(2)">H2</button>
-      <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 3 })" @click="setHeading(3)">H3</button>
+      <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 1, mod })" @click="setHeading(1)">H1</button>
+      <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 2, mod })" @click="setHeading(2)">H2</button>
+      <button class="tb-btn tb-text" :title="t('editor.toolbar.heading', { n: 3, mod })" @click="setHeading(3)">H3</button>
       <span class="tb-sep" />
-      <button class="tb-btn tb-text font-bold" :title="t('editor.toolbar.bold')" @click="wrapSelection('**')">B</button>
-      <button class="tb-btn tb-text italic" :title="t('editor.toolbar.italic')" @click="wrapSelection('*')">I</button>
-      <button class="tb-btn tb-text line-through" :title="t('editor.toolbar.strikethrough')" @click="wrapSelection('~~')">S</button>
-      <button class="tb-btn" :title="t('editor.toolbar.inlineCode')" @click="wrapSelection('`')">
+      <button class="tb-btn tb-text font-bold" :title="t('editor.toolbar.bold', { mod })" @click="wrapSelection('**')">B</button>
+      <button class="tb-btn tb-text italic" :title="t('editor.toolbar.italic', { mod })" @click="wrapSelection('*')">I</button>
+      <button class="tb-btn tb-text line-through" :title="t('editor.toolbar.strikethrough', { mod })" @click="wrapSelection('~~')">S</button>
+      <button class="tb-btn" :title="t('editor.toolbar.inlineCode', { mod })" @click="wrapSelection('`')">
         <AppIcon name="code" :size="15" />
       </button>
       <span class="tb-sep" />
-      <button class="tb-btn" :title="t('editor.toolbar.quote')" @click="toggleQuote">
+      <button class="tb-btn" :title="t('editor.toolbar.quote', { mod })" @click="toggleQuote">
         <AppIcon name="quote" :size="15" />
       </button>
-      <button class="tb-btn" :title="t('editor.toolbar.bulletList')" @click="toggleBullet">
+      <button class="tb-btn" :title="t('editor.toolbar.bulletList', { mod })" @click="toggleBullet">
         <AppIcon name="listBullet" :size="15" />
       </button>
-      <button class="tb-btn" :title="t('editor.toolbar.orderedList')" @click="toggleOrdered">
+      <button class="tb-btn" :title="t('editor.toolbar.orderedList', { mod })" @click="toggleOrdered">
         <AppIcon name="listOrdered" :size="15" />
       </button>
-      <button class="tb-btn" :title="t('editor.toolbar.taskList')" @click="toggleTask">
+      <button class="tb-btn" :title="t('editor.toolbar.taskList', { mod })" @click="toggleTask">
         <AppIcon name="checkSquare" :size="15" />
       </button>
       <span class="tb-sep" />
-      <button class="tb-btn" :title="t('editor.toolbar.link')" @click="insertLink">
+      <button class="tb-btn" :title="t('editor.toolbar.link', { mod })" @click="insertLink">
         <AppIcon name="link" :size="15" />
       </button>
       <button class="tb-btn" :title="t('editor.toolbar.image')" @click="insertImage">
         <AppIcon name="image" :size="15" />
       </button>
-      <button class="tb-btn" :title="t('editor.toolbar.codeBlock')" @click="toggleCodeBlock">
+      <button class="tb-btn" :title="t('editor.toolbar.codeBlock', { mod })" @click="toggleCodeBlock">
         <AppIcon name="squareCode" :size="15" />
       </button>
       <span class="tb-sep" />
@@ -445,6 +508,13 @@ defineExpose({
       </button>
       <button class="tb-btn" :title="t('editor.toolbar.divider')" @click="insertDivider">
         <AppIcon name="minus" :size="15" />
+      </button>
+      <span class="tb-sep" />
+      <button class="tb-btn" :title="t('editor.toolbar.indent', { mod })" @click="toggleIndent">
+        <AppIcon name="indent" :size="15" />
+      </button>
+      <button class="tb-btn" :title="t('editor.toolbar.break', { mod })" @click="insertBreak">
+        <AppIcon name="wrapText" :size="15" />
       </button>
     </div>
 

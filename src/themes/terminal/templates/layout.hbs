@@ -14,7 +14,7 @@
   </style>
   <link rel="stylesheet" href="{{asset "assets/style.css"}}">
 </head>
-  <body class="term{{#if config.scanline}} term-scan{{/if}}">
+  <body class="term font-{{config.bodyFont}}{{#if config.scanline}} term-scan{{/if}}"{{#if (eq config.bodyFont "custom")}} style="--ps-font-body: {{config.customFont}}"{{/if}}>
   <!-- 移动端顶栏:菜单按钮 + 当前页路径 + 站点标识(桌面端隐藏) -->
   <header class="ps-topbar">
     <button class="ps-menu-btn" type="button" aria-label="文档列表" aria-expanded="false" aria-controls="ps-sidebar">

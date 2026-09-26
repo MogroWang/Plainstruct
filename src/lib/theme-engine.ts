@@ -16,6 +16,21 @@ export interface NavItem {
   current?: boolean;
 }
 
+/** 博客首页文章流的条目(htmlPath 为 content/ 相对源路径,渲染时换算为页面相对地址) */
+export interface PostSummary {
+  title: string;
+  htmlPath: string;
+  url?: string;
+  date?: string;
+  description?: string;
+}
+
+export interface TocEntry {
+  level: number;
+  text: string;
+  id: string;
+}
+
 export interface PageContext {
   site: { name: string; description?: string; logo?: string; locale?: string };
   page: {
@@ -29,10 +44,18 @@ export interface PageContext {
     fullTitle?: string;
     /** 当前页在导航中的面包屑(不含页面自身),移动端顶栏展示 */
     crumbs?: string[];
+    /** front-matter 中的发布日期,原样输出 */
+    date?: string;
+    /** 当前页是否站点根 index(博客主题据此渲染文章流) */
+    isHome?: boolean;
+    /** 页内标题大纲(博客主题文章页的 TOC 侧栏) */
+    toc?: TocEntry[];
   };
   nav: NavItem[];
   prev?: { title: string; url: string };
   next?: { title: string; url: string };
+  /** 博客站点:全部文章(按日期倒序),首页渲染文章流 */
+  posts?: PostSummary[];
   config: Record<string, string | number | boolean>;
 }
 

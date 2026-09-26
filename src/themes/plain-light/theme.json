@@ -1,7 +1,8 @@
 {
   "id": "plain-light",
   "name": "素构 · 浅色",
-  "version": "1.5.0",
+  "version": "2.0.0",
+  "type": "docs",
   "author": "MogroWang Studio",
   "description": "默认浅色主题:灰白纸感,墨色强调,系统字体。",
   "config": [
@@ -25,21 +26,45 @@
       "label": "正文字体",
       "type": "select",
       "default": "system",
-      "options": ["system", "serif", "custom"]
+      "options": [
+        "system",
+        "serif",
+        "mono",
+        "custom"
+      ]
     },
     {
       "key": "customFont",
       "label": "自定义字体(font-family)",
       "type": "text",
       "default": "",
-      "visibleIf": { "key": "bodyFont", "equals": "custom" }
+      "visibleIf": {
+        "key": "bodyFont",
+        "equals": "custom"
+      }
     },
     {
       "key": "pageTransition",
       "label": "页面过渡动画",
       "type": "select",
       "default": "淡入上浮",
-      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现", "滑入", "弹性浮现", "模糊聚焦", "翻页", "揭开"]
+      "options": [
+        "关闭",
+        "淡入",
+        "淡入上浮",
+        "缩放浮现",
+        "滑入",
+        "弹性浮现",
+        "模糊聚焦",
+        "翻页",
+        "揭开"
+      ]
+    },
+    {
+      "key": "showDate",
+      "label": "显示文档日期",
+      "type": "boolean",
+      "default": false
     },
     {
       "key": "showDescription",

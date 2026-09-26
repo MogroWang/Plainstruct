@@ -32,6 +32,23 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* 正文字体切换:layout 按 bodyFont 写入 class,custom 时在 body 上注入 --ps-font-body */
+body.font-system {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+body.font-serif {
+  font-family: var(--ps-font-serif);
+}
+
+body.font-mono {
+  font-family: var(--ps-font-mono);
+}
+
+body.font-custom {
+  font-family: var(--ps-font-body, var(--ps-font-serif));
+}
+
 /* ---------- 页面过渡动画 ---------- */
 
 @keyframes ps-page-fade {
@@ -299,6 +316,14 @@ a.ps-nav-dir:hover {
   width: 3.2em;
   margin-top: 14px;
   border-bottom: 3px solid var(--ps-accent);
+}
+
+.ps-doc-date {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ps-ink-3);
 }
 
 .ps-doc-desc {

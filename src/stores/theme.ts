@@ -1,10 +1,15 @@
 import { defineStore } from "pinia";
 import { ipc } from "@/ipc/ipc";
-import type { ThemeMeta, ThemeSource } from "@/ipc/types";
+import type { SiteType, ThemeMeta, ThemeSource } from "@/ipc/types";
 import { builtinThemes } from "@/themes/manifest";
 import type { ThemeBundle } from "@/lib/theme-engine";
 import { useSiteStore } from "./site";
 import { useUiStore } from "./ui";
+
+/** 主题适用的站点类型,缺省 docs(兼容旧自定义主题) */
+function themeType(meta: ThemeMeta): SiteType {
+  return meta.siteType ?? "docs";
+}
 
 interface State {
   builtinMetas: ThemeMeta[];
@@ -34,6 +39,17 @@ export const useThemeStore = defineStore("theme", {
   }),
 
   getters: {
+    /** 当前站点类型,决定主题列表与默认主题 */
+    siteType(): SiteType {
+      const site = useSiteStore();
+      return site.config?.siteType ?? "docs";
+    },
+    builtinForSite(state): ThemeMeta[] {
+      return state.builtinMetas.filter((m) => themeType(m) === this.siteType);
+    },
+    customForSite(state): ThemeMeta[] {
+      return state.customMetas.filter((m) => themeType(m) === this.siteType);
+    },
     activeMeta(state): ThemeMeta | undefined {
       const site = useSiteStore();
       const id = site.config?.theme.id;
@@ -69,6 +85,23 @@ export const useThemeStore = defineStore("theme", {
   actions: {
     reset() {
       this.$reset();
+    },
+
+    /** 指定站点类型的首个内置主题(类型切换时的默认落点) */
+    defaultBuiltinFor(type: SiteType): ThemeMeta | undefined {
+      const meta = this.builtinMetas.find((m) => themeType(m) === type);
+      return meta ?? this.builtinMetas[0];
+    },
+
+    /** 切换站点类型:配置落到对应类型的首个内置主题 */
+    async applySiteType(type: SiteType) {
+      const site = useSiteStore();
+      const fallback = this.defaultBuiltinFor(type);
+      await site.saveConfig({
+        siteType: type,
+        ...(fallback ? { theme: { id: fallback.id, source: "builtin" as ThemeSource, config: {} } } : {}),
+      });
+      await this.loadAll();
     },
 
     async loadAll() {

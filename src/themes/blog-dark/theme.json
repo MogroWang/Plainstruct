@@ -1,31 +1,31 @@
 {
-  "id": "terminal",
-  "name": "终端",
+  "id": "blog-dark",
+  "name": "手记 · 深色",
   "version": "2.0.0",
-  "type": "docs",
   "author": "MogroWang Studio",
-  "description": "命令行风:等宽排印,暗色窗口,提示符导航。",
+  "type": "blog",
+  "description": "博客·深色:暖炭夜纸,文章为流,日期为记。",
   "config": [
     {
       "key": "accentColor",
       "label": "强调色",
       "type": "color",
-      "default": "#43d17c"
+      "default": "#8ea8cc"
     },
     {
       "key": "contentWidth",
       "label": "正文宽度(px)",
       "type": "number",
-      "default": 780,
-      "min": 620,
-      "max": 980,
+      "default": 680,
+      "min": 560,
+      "max": 860,
       "step": 20
     },
     {
       "key": "bodyFont",
       "label": "正文字体",
       "type": "select",
-      "default": "mono",
+      "default": "system",
       "options": [
         "system",
         "serif",
@@ -44,16 +44,27 @@
       }
     },
     {
-      "key": "scanline",
-      "label": "CRT 扫描线纹理",
+      "key": "showDate",
+      "label": "显示文章日期",
       "type": "boolean",
-      "default": false
+      "default": true
     },
     {
-      "key": "showDate",
-      "label": "显示文档日期",
-      "type": "boolean",
-      "default": false
+      "key": "pageTransition",
+      "label": "页面过渡动画",
+      "type": "select",
+      "default": "淡入上浮",
+      "options": [
+        "关闭",
+        "淡入",
+        "淡入上浮",
+        "缩放浮现",
+        "滑入",
+        "弹性浮现",
+        "模糊聚焦",
+        "翻页",
+        "揭开"
+      ]
     },
     {
       "key": "showFooterCredit",

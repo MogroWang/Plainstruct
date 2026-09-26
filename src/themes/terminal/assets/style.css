@@ -31,6 +31,23 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* 正文字体切换:layout 按 bodyFont 写入 class,custom 时在 body 上注入 --ps-font-body */
+body.font-system {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+body.font-serif {
+  font-family: var(--ps-font-serif);
+}
+
+body.font-mono {
+  font-family: var(--ps-font-mono);
+}
+
+body.font-custom {
+  font-family: var(--ps-font-body, var(--ps-font-mono));
+}
+
 /* CRT 扫描线纹理:细密横纹 + 轻微暗角,纯装饰不拦截交互 */
 .term-scan::after {
   content: "";
@@ -345,6 +362,13 @@ a.ps-nav-dir.current,
 .ps-doc-title::before {
   content: "# ";
   color: var(--ps-accent);
+}
+
+.ps-doc-date {
+  display: block;
+  margin: 0 0 26px;
+  font-size: 12.5px;
+  color: var(--ps-ink-3);
 }
 
 .ps-doc-desc {

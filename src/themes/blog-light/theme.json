@@ -1,24 +1,24 @@
 {
-  "id": "gallery",
-  "name": "画廊",
+  "id": "blog-light",
+  "name": "手记 · 浅色",
   "version": "2.0.0",
-  "type": "docs",
   "author": "MogroWang Studio",
-  "description": "卡片现代风:浮卡分层,大圆角,陶土暖橘点睛。",
+  "type": "blog",
+  "description": "博客·浅色:纸面素栏,文章为流,日期为记。",
   "config": [
     {
       "key": "accentColor",
       "label": "强调色",
       "type": "color",
-      "default": "#c8553d"
+      "default": "#4a5d82"
     },
     {
       "key": "contentWidth",
       "label": "正文宽度(px)",
       "type": "number",
-      "default": 740,
-      "min": 600,
-      "max": 920,
+      "default": 680,
+      "min": 560,
+      "max": 860,
       "step": 20
     },
     {
@@ -26,28 +26,27 @@
       "label": "正文字体",
       "type": "select",
       "default": "system",
-      "options": [
-        "system",
-        "serif",
-        "mono",
-        "custom"
-      ]
+      "options": ["system", "serif", "mono", "custom"]
     },
     {
       "key": "customFont",
       "label": "自定义字体(font-family)",
       "type": "text",
       "default": "",
-      "visibleIf": {
-        "key": "bodyFont",
-        "equals": "custom"
-      }
+      "visibleIf": { "key": "bodyFont", "equals": "custom" }
     },
     {
       "key": "showDate",
-      "label": "显示文档日期",
+      "label": "显示文章日期",
       "type": "boolean",
-      "default": false
+      "default": true
+    },
+    {
+      "key": "pageTransition",
+      "label": "页面过渡动画",
+      "type": "select",
+      "default": "淡入上浮",
+      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现", "滑入", "弹性浮现", "模糊聚焦", "翻页", "揭开"]
     },
     {
       "key": "showFooterCredit",

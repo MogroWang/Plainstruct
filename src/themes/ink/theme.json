@@ -1,7 +1,8 @@
 {
   "id": "ink",
   "name": "墨阅",
-  "version": "1.5.0",
+  "version": "2.0.0",
+  "type": "docs",
   "author": "MogroWang Studio",
   "description": "报刊衬线风:纸面留白,墨色排印,朱砂点睛。",
   "config": [
@@ -21,6 +22,28 @@
       "step": 20
     },
     {
+      "key": "bodyFont",
+      "label": "正文字体",
+      "type": "select",
+      "default": "serif",
+      "options": [
+        "system",
+        "serif",
+        "mono",
+        "custom"
+      ]
+    },
+    {
+      "key": "customFont",
+      "label": "自定义字体(font-family)",
+      "type": "text",
+      "default": "",
+      "visibleIf": {
+        "key": "bodyFont",
+        "equals": "custom"
+      }
+    },
+    {
       "key": "dropCap",
       "label": "首段首字下沉",
       "type": "boolean",
@@ -31,7 +54,23 @@
       "label": "页面过渡动画",
       "type": "select",
       "default": "淡入上浮",
-      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现", "滑入", "弹性浮现", "模糊聚焦", "翻页", "揭开"]
+      "options": [
+        "关闭",
+        "淡入",
+        "淡入上浮",
+        "缩放浮现",
+        "滑入",
+        "弹性浮现",
+        "模糊聚焦",
+        "翻页",
+        "揭开"
+      ]
+    },
+    {
+      "key": "showDate",
+      "label": "显示文档日期",
+      "type": "boolean",
+      "default": false
     },
     {
       "key": "showFooterCredit",

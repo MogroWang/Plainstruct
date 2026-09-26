@@ -26,6 +26,9 @@ pub struct SiteConfig {
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_format: Option<String>,
+    /// 站点类型:docs / blog,缺省 docs(兼容旧 site.json)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub site_type: Option<String>,
     pub theme: SiteThemeRef,
 }
 
@@ -37,6 +40,7 @@ impl Default for SiteConfig {
             logo: None,
             locale: None,
             title_format: None,
+            site_type: None,
             theme: SiteThemeRef {
                 id: "plain-light".into(),
                 source: "builtin".into(),
@@ -79,6 +83,7 @@ pub fn create_site(
     dir: String,
     name: String,
     description: Option<String>,
+    site_type: Option<String>,
 ) -> Result<SiteConfig, String> {
     ensure_main(&window)?;
     let root = PathBuf::from(&dir);
@@ -95,14 +100,29 @@ pub fn create_site(
     std::fs::create_dir_all(plainstruct_dir(&root).join("assets")).map_err(|e| e.to_string())?;
 
     let title = name.trim();
-    let welcome = format!(
-        "---\ntitle: 首页\norder: 0\n---\n\n# {title}\n\n从这里开始写作。\n\n- 左侧文件树管理文档\n- 编辑与实时预览左右对照\n- 构建后可发布到 GitHub Pages\n"
-    );
+    let site_type = site_type.filter(|t| t == "blog").unwrap_or_else(|| "docs".into());
+    let welcome = if site_type == "blog" {
+        format!(
+            "---\ntitle: 首页\norder: 0\n---\n\n# {title}\n\n这里是你的博客。新建文章时在 front-matter 里写上 date,首页的文章流就会按日期排序展示。\n"
+        )
+    } else {
+        format!(
+            "---\ntitle: 首页\norder: 0\n---\n\n# {title}\n\n从这里开始写作。\n\n- 左侧文件树管理文档\n- 编辑与实时预览左右对照\n- 构建后可发布到 GitHub Pages\n"
+        )
+    };
     std::fs::write(root.join("content").join("index.md"), welcome).map_err(|e| e.to_string())?;
 
+    // 博客站点默认使用首个内置博客主题(浅色),文档站点保持素构·浅色
+    let theme_id = if site_type == "blog" { "blog-light" } else { "plain-light" };
     let cfg = SiteConfig {
         name: title.to_string(),
         description: description.filter(|d| !d.trim().is_empty()),
+        site_type: Some(site_type),
+        theme: SiteThemeRef {
+            id: theme_id.into(),
+            source: "builtin".into(),
+            config: serde_json::json!({}),
+        },
         ..Default::default()
     };
     write_site_config_file(&root, &cfg)?;
@@ -161,6 +181,8 @@ pub struct SiteConfigPatch {
     #[serde(default)]
     pub title_format: Option<String>,
     #[serde(default)]
+    pub site_type: Option<String>,
+    #[serde(default)]
     pub theme: Option<SiteThemeRef>,
 }
 
@@ -187,6 +209,11 @@ pub fn save_site_config(window: tauri::WebviewWindow, state: State<'_, AppState>
             Some(f) if f.trim().is_empty() => None,
             Some(f) => Some(f),
             None => existing.title_format,
+        },
+        site_type: match patch.site_type {
+            Some(t) if t.trim().is_empty() => None,
+            Some(t) => Some(t),
+            None => existing.site_type,
         },
         theme: patch.theme.unwrap_or(existing.theme),
     };

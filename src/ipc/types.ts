@@ -3,6 +3,8 @@
 export type Platform = "windows" | "macos" | "browser";
 export type Locale = "zh-CN" | "en-US";
 export type ThemeSource = "builtin" | "custom";
+/** 站点类型:文档站 / 博客站,决定可选主题与主页形态 */
+export type SiteType = "docs" | "blog";
 /** 软件主题:浅色 / 暗色 / 素笺 / 青瓷 / 深海 / 紫檀 / 跟随系统 */
 export type AppTheme = "light" | "dark" | "sepia" | "mint" | "ocean" | "plum" | "system";
 /** 界面字体模式:系统默认 / 衬线 / 等宽 / 自定义 font-family */
@@ -55,6 +57,7 @@ export interface SiteConfig {
   logo?: string; // .plainstruct/assets/ 内的文件名
   locale?: string; // 站点语言:生成页面的 <html lang>
   titleFormat?: string; // 浏览器标题格式,如 "{page} · {site}"
+  siteType?: SiteType; // 站点类型,缺省 docs(兼容旧站点)
   theme: SiteThemeRef;
 }
 
@@ -87,6 +90,8 @@ export interface ThemeMeta {
   author?: string;
   description?: string;
   config: ThemeField[];
+  /** 主题适用的站点类型,缺省 docs(兼容旧自定义主题);theme.json 内写作 "type" */
+  siteType?: SiteType;
   source: ThemeSource;
 }
 

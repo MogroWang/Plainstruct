@@ -1,11 +1,11 @@
 /** 构建管线 -- 读树 -> 渲染 Markdown -> 套主题 -> 写出 build/;
  *  renderPreview 与构建共用同一套解析,保证「预览即产出」。 */
 import { ipc } from "@/ipc/ipc";
-import type { BuildReport, BuildWarning, CopyItem, OutputFile, Platform, SiteConfig, TreeNode } from "@/ipc/types";
+import type { BuildReport, BuildWarning, CopyItem, OutputFile, Platform, SiteConfig, SiteType, TreeNode } from "@/ipc/types";
 import { parseFrontMatter } from "./frontmatter";
-import { renderMarkdown, type MdEnv } from "./markdown";
+import { renderMarkdown, extractHeadings, type MdEnv } from "./markdown";
 import { basename, dirname, encodePath, isMarkdown, mdToHtml, relPosix, relPrefix, stripExt } from "./paths";
-import { compileTheme, mergeConfigDefaults, type NavItem, type PageContext, type ThemeBundle } from "./theme-engine";
+import { compileTheme, mergeConfigDefaults, type NavItem, type PageContext, type PostSummary, type ThemeBundle } from "./theme-engine";
 import { siteUrl } from "./preview";
 
 export interface DocMeta {
@@ -13,6 +13,7 @@ export interface DocMeta {
   title: string;
   order: number;
   description?: string;
+  date?: string;
   body: string;
 }
 
@@ -61,10 +62,30 @@ function buildMetas(paths: string[], cache: DocsCache): Map<string, DocMeta> {
       title,
       order: data.order ?? 0,
       description: data.description,
+      date: data.date,
       body: stripLeadingTitle(body, title),
     });
   }
   return metas;
+}
+
+/** 博客文章流:排除各级 index.md,有 date 的按日期倒序在前,无 date 的按标题排在后 */
+function buildPosts(metas: Map<string, DocMeta>): PostSummary[] {
+  const posts = [...metas.values()]
+    .filter((m) => basename(m.path).toLowerCase() !== "index.md")
+    .map((m) => ({
+      title: m.title,
+      htmlPath: mdToHtml(m.path),
+      date: m.date,
+      description: m.description,
+    }));
+  const withDate = posts
+    .filter((p) => p.date)
+    .sort((a, b) => (a.date! < b.date! ? 1 : a.date! > b.date! ? -1 : 0));
+  const withoutDate = posts
+    .filter((p) => !p.date)
+    .sort((a, b) => a.title.localeCompare(b.title, "zh-Hans-CN"));
+  return [...withDate, ...withoutDate];
 }
 
 function buildNav(nodes: TreeNode[], metas: Map<string, DocMeta>): RawNav[] {
@@ -174,6 +195,8 @@ function renderOnePage(
   resolveAsset?: MdEnv["resolveAsset"],
   /** 预览模式:logo 的绝对地址(构建时留空,使用相对路径) */
   logoUrl?: string,
+  /** 站点类型与博客文章流(博客站点传入,首页/文章页模板据此渲染) */
+  extras?: { siteType?: SiteType; posts?: PostSummary[] },
 ): PageContext & { html: string } {
   const env: MdEnv = { currentMdPath: doc.path, docMap, dirSet, warnings, resolveAsset };
   const content = renderMarkdown(doc.body, env);
@@ -184,6 +207,7 @@ function renderOnePage(
   const idx = flat.findIndex((n) => n.htmlPath === htmlPath);
   const prev = idx > 0 ? flat[idx - 1] : undefined;
   const next = idx >= 0 && idx < flat.length - 1 ? flat[idx + 1] : undefined;
+  const isBlog = (extras?.siteType ?? "docs") === "blog";
 
   const ctx: PageContext = {
     site: {
@@ -201,10 +225,17 @@ function renderOnePage(
       relPrefix: prefix,
       fullTitle: pageTitle(site, doc.title),
       crumbs: crumbsFor(navRaw, htmlPath),
+      date: doc.date,
+      isHome: htmlPath === "index.html" || undefined,
+      // 博客文章页的页内目录;标题 id 与渲染管线同源(extractHeadings 复用 slugify),锚点一致
+      toc: isBlog ? extractHeadings(doc.body) : undefined,
     },
     nav: navForPage(navRaw, htmlPath, outDir),
     prev: prev ? { title: prev.title, url: encodePath(relPosix(outDir, prev.htmlPath!)) } : undefined,
     next: next ? { title: next.title, url: encodePath(relPosix(outDir, next.htmlPath!)) } : undefined,
+    posts: isBlog
+      ? extras?.posts?.map((p) => ({ ...p, url: encodePath(relPosix(outDir, p.htmlPath)) }))
+      : undefined,
     config,
   };
   return { ...ctx, html: render(ctx) };
@@ -255,6 +286,9 @@ export function renderPreview(
   const navRaw = buildNav(tree, metas);
   const doc = metas.get(currentPath);
   if (!doc) return "";
+  const siteType = site.siteType ?? "docs";
+  const extras =
+    siteType === "blog" ? { siteType, posts: buildPosts(metas) } : { siteType: siteType as SiteType };
   const logoUrl = site.logo
     ? siteUrl(platform, `.plainstruct/assets/${site.logo}`)
     : undefined;
@@ -269,6 +303,7 @@ export function renderPreview(
     [],
     (resolved) => siteUrl(platform, "content/" + resolved),
     logoUrl,
+    extras,
   );
   return inlineThemeAssets(html, theme.files);
 }
@@ -297,6 +332,8 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
   const config = mergeConfigDefaults(theme.meta, site.theme.config);
   const render = compileTheme(theme);
   const navRaw = buildNav(tree, metas);
+  const siteType = site.siteType ?? "docs";
+  const extras = siteType === "blog" ? { siteType, posts: buildPosts(metas) } : { siteType: siteType as SiteType };
   const warnings: BuildWarning[] = [];
   const outputs: OutputFile[] = [];
 
@@ -320,20 +357,24 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
       dirSet,
       doc,
       warnings,
+      undefined,
+      undefined,
+      extras,
     );
     outputs.push({ path: mdToHtml(doc.path), content: html });
   }
 
-  // 根目录:无 index.md 时自动生成站点介绍页(TOC),保证 index.html 始终存在
+  // 根目录:无 index.md 时自动生成站点介绍页(TOC),保证 index.html 始终存在;
+  // 博客站点生成纯文章流首页(正文留空,由主题的 posts 区块渲染)
   if (!mdPaths.some((p) => p.toLowerCase() === "index.md")) {
     const home: DocMeta = {
       path: "index.md",
       title: site.name,
       description: site.description,
       order: 0,
-      body: tocHtml(navRaw, ""),
+      body: siteType === "blog" ? "" : tocHtml(navRaw, ""),
     };
-    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, home, warnings);
+    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, home, warnings, undefined, undefined, extras);
     outputs.push({ path: "index.html", content: html });
   }
 
@@ -351,7 +392,7 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
     });
   });
   for (const page of folderPages) {
-    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, page, warnings);
+    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, page, warnings, undefined, undefined, extras);
     outputs.push({ path: mdToHtml(page.path), content: html });
   }
 

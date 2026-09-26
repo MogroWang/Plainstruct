@@ -2,15 +2,18 @@
 import { reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useSiteStore } from "@/stores/site";
+import { useThemeStore } from "@/stores/theme";
 import { useUiStore } from "@/stores/ui";
 import { useAppStore } from "@/stores/app";
 import { ipc } from "@/ipc/ipc";
+import type { SiteType } from "@/ipc/types";
 import { siteUrl } from "@/lib/preview";
 import AppIcon from "@/components/AppIcon.vue";
 import SelectMenu from "@/components/SelectMenu.vue";
 
 const { t } = useI18n();
 const site = useSiteStore();
+const theme = useThemeStore();
 const ui = useUiStore();
 const app = useAppStore();
 
@@ -23,7 +26,19 @@ const languageOptions = [
   { value: CUSTOM_LOCALE, label: t("site.languageCustom") },
 ];
 
-const form = reactive({ name: "", description: "", locale: "zh-CN", customLocale: "", titleFormat: "" });
+const siteTypeOptions = [
+  { value: "docs", label: t("wizard.typeDocs") },
+  { value: "blog", label: t("wizard.typeBlog") },
+];
+
+const form = reactive({
+  name: "",
+  description: "",
+  locale: "zh-CN",
+  customLocale: "",
+  titleFormat: "",
+  siteType: "docs" as SiteType,
+});
 const saving = ref(false);
 const pickingLogo = ref(false);
 
@@ -38,6 +53,7 @@ watch(
       form.locale = cfg.locale && known ? cfg.locale : cfg.locale ? CUSTOM_LOCALE : "zh-CN";
       form.customLocale = cfg.locale && !known ? cfg.locale : "";
       form.titleFormat = cfg.titleFormat ?? "";
+      form.siteType = cfg.siteType ?? "docs";
     }
   },
   { immediate: true },
@@ -49,6 +65,9 @@ async function save() {
   if (!form.name.trim()) return;
   saving.value = true;
   try {
+    // 类型切换连带主题(两套主题互不通用):先落类型与默认主题,再保存其余字段
+    const typeChanged = (site.config?.siteType ?? "docs") !== form.siteType;
+    if (typeChanged) await theme.applySiteType(form.siteType);
     await site.saveConfig({
       name: form.name.trim(),
       description: form.description.trim() || undefined,
@@ -104,6 +123,11 @@ function openFolder() {
           <div>
             <label class="field-label">{{ t("site.name") }}</label>
             <input v-model="form.name" class="input" type="text" :placeholder="t('site.namePlaceholder')" />
+          </div>
+          <div>
+            <label class="field-label">{{ t("wizard.siteType") }}</label>
+            <SelectMenu v-model="form.siteType" :options="siteTypeOptions" align="left" />
+            <p class="field-hint">{{ t("site.siteTypeHint") }}</p>
           </div>
           <div>
             <label class="field-label">{{ t("site.description") }}</label>

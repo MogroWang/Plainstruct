@@ -1,0 +1,41 @@
+{{#if page.isHome}}
+<section class="blog-home">
+  {{#if page.content}}<div class="blog-home-body">{{{page.content}}}</div>{{/if}}
+  {{#if posts}}
+    <div class="blog-stream">
+      {{#each posts}}
+        <article class="blog-entry">
+          <h2 class="blog-entry-title"><a href="{{this.url}}">{{this.title}}</a></h2>
+          {{#if this.date}}<time class="blog-entry-date">{{this.date}}</time>{{/if}}
+          {{#if this.description}}<p class="blog-entry-desc">{{this.description}}</p>{{/if}}
+        </article>
+      {{/each}}
+    </div>
+  {{/if}}
+</section>
+{{else}}
+<article class="blog-post">
+  <header class="blog-post-head">
+    {{#if page.title}}<h1 class="blog-post-title">{{page.title}}</h1>{{/if}}
+    {{#if config.showDate}}{{#if page.date}}<time class="blog-post-date">{{page.date}}</time>{{/if}}{{/if}}
+    {{#if page.description}}<p class="blog-post-desc">{{page.description}}</p>{{/if}}
+  </header>
+  <div class="blog-post-cols">
+    <div class="blog-post-body">{{{page.content}}}</div>
+    {{#if page.toc}}
+      <aside class="blog-toc" aria-label="目录">
+        <p class="blog-toc-title">目录</p>
+        <ul class="blog-toc-list">
+          {{#each page.toc}}
+            <li class="blog-toc-item is-l{{this.level}}"><a href="#{{this.id}}">{{this.text}}</a></li>
+          {{/each}}
+        </ul>
+      </aside>
+    {{/if}}
+  </div>
+  <nav class="blog-pager">
+    {{#if prev}}<a class="blog-pager-item" href="{{prev.url}}"><span class="blog-pager-tag">←</span><span>{{prev.title}}</span></a>{{/if}}
+    {{#if next}}<a class="blog-pager-item is-next" href="{{next.url}}"><span>{{next.title}}</span><span class="blog-pager-tag">→</span></a>{{/if}}
+  </nav>
+</article>
+{{/if}}

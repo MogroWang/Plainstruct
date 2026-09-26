@@ -46,10 +46,10 @@ export const ipc = {
   },
 
   /* ---------- 站点 ---------- */
-  createSite(dir: string, name: string, description?: string): Promise<SiteConfig> {
+  createSite(dir: string, name: string, description?: string, siteType?: string): Promise<SiteConfig> {
     return inTauri
-      ? invoke<SiteConfig>("create_site", { dir, name, description })
-      : mock.createSite(dir, name, description);
+      ? invoke<SiteConfig>("create_site", { dir, name, description, siteType })
+      : mock.createSite(dir, name, description, siteType);
   },
   openSite(dir: string): Promise<SiteConfig> {
     return inTauri ? invoke<SiteConfig>("open_site", { dir }) : mock.openSite(dir);
