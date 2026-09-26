@@ -139,11 +139,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   background: var(--color-line);
 }
 
-/* 浮现:轻微缩放 + 上移,非线性缓动 */
+/* 浮现:轻微缩放 + 上移,非线性缓动(无过冲) */
 .ctx-enter-active .ctx-panel {
   transition:
     opacity 140ms var(--ease-plain),
-    transform 180ms var(--ease-pop);
+    transform 180ms var(--ease-plain);
 }
 .ctx-leave-active {
   transition: opacity 100ms var(--ease-plain-inverse);

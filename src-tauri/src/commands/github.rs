@@ -232,42 +232,14 @@ pub async fn github_sync(
     let branch_ref = format!("refs/heads/{}", cfg.branch);
     let ref_url = repo_api(&cfg, &format!("/git/ref/{}", branch_ref.replace('/', "%2F")));
 
-    // 3. 取基准提交(分支不存在则建孤儿分支)
+    // 3. 取基准提交。分支不存在时不预建空树(Git API 拒绝空 tree 数组,会 422),
+    //    直接以本次站点提交(无 parents)作为发布分支的初始提交,提交后再创建 ref
     let (ref_status, ref_body) = request(&http, reqwest::Method::GET, &ref_url, &cfg.token, None).await?;
     let mut base_commit: Option<String> = None;
+    let mut branch_exists = false;
     if ref_status == 200 {
         base_commit = ref_body["object"]["sha"].as_str().map(|s| s.to_string());
-    } else {
-        // 孤儿分支:空树 -> 初始提交 -> 创建 ref
-        let (_, empty_tree) = request(
-            &http,
-            reqwest::Method::POST,
-            &repo_api(&cfg, "/git/trees"),
-            &cfg.token,
-            Some(json!({ "tree": [] })),
-        )
-        .await?;
-        let tree_sha = empty_tree["sha"].as_str().ok_or("创建空树失败")?.to_string();
-        let (_, commit) = request(
-            &http,
-            reqwest::Method::POST,
-            &repo_api(&cfg, "/git/commits"),
-            &cfg.token,
-            Some(json!({ "message": "plainstruct: init", "tree": tree_sha, "parents": [] })),
-        )
-        .await?;
-        let sha = commit["sha"].as_str().ok_or("创建初始提交失败")?.to_string();
-        let (ref_created, _) = request(
-            &http,
-            reqwest::Method::POST,
-            &repo_api(&cfg, "/git/refs"),
-            &cfg.token,
-            Some(json!({ "ref": branch_ref, "sha": sha })),
-        )
-        .await?;
-        if ref_created != 201 {
-            return Err("创建发布分支失败".into());
-        }
+        branch_exists = true;
     }
 
     // 4. 逐文件建 blob(全量替换,天然处理删除)
@@ -300,7 +272,7 @@ pub async fn github_sync(
 
     // 5. tree(不带 base_tree = 精确替换,自动清理已删除文件)-> commit -> 更新 ref
     let tree_body = json!({ "tree": tree_items });
-    let (_, new_tree) = request(
+    let (tree_status, new_tree) = request(
         &http,
         reqwest::Method::POST,
         &repo_api(&cfg, "/git/trees"),
@@ -308,6 +280,10 @@ pub async fn github_sync(
         Some(tree_body),
     )
     .await?;
+    if tree_status != 201 {
+        let msg = new_tree["message"].as_str().unwrap_or("");
+        return Err(format!("创建 tree 失败({tree_status}): {msg}"));
+    }
     let tree_sha = new_tree["sha"].as_str().ok_or("创建 tree 失败")?.to_string();
 
     let mut commit_body = json!({
@@ -331,20 +307,36 @@ pub async fn github_sync(
     }
     let commit_sha = commit["sha"].as_str().ok_or("提交缺少 sha")?.to_string();
 
-    let (ref_status, ref_body) = request(
-        &http,
-        reqwest::Method::PATCH,
-        &ref_url,
-        &cfg.token,
-        Some(json!({ "sha": commit_sha, "force": true })),
-    )
-    .await?;
-    if ref_status != 200 {
-        let msg = ref_body["message"].as_str().unwrap_or("");
-        return Err(format!("更新分支失败({ref_status}): {msg}"));
+    // 6. 分支已存在则强推更新;首次发布则创建发布分支指向该提交
+    if branch_exists {
+        let (ref_status, ref_body) = request(
+            &http,
+            reqwest::Method::PATCH,
+            &ref_url,
+            &cfg.token,
+            Some(json!({ "sha": commit_sha, "force": true })),
+        )
+        .await?;
+        if ref_status != 200 {
+            let msg = ref_body["message"].as_str().unwrap_or("");
+            return Err(format!("更新分支失败({ref_status}): {msg}"));
+        }
+    } else {
+        let (created, ref_body) = request(
+            &http,
+            reqwest::Method::POST,
+            &repo_api(&cfg, "/git/refs"),
+            &cfg.token,
+            Some(json!({ "ref": branch_ref, "sha": commit_sha })),
+        )
+        .await?;
+        if created != 201 {
+            let msg = ref_body["message"].as_str().unwrap_or("");
+            return Err(format!("创建发布分支失败({created}): {msg}"));
+        }
     }
 
-    // 6. 尽力开启 Pages(失败不影响发布结果)
+    // 7. 尽力开启 Pages(失败不影响发布结果)
     let (pages_status, _) = request(&http, reqwest::Method::GET, &repo_api(&cfg, "/pages"), &cfg.token, None).await?;
     if pages_status == 404 {
         let _ = request(

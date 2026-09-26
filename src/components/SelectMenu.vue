@@ -214,7 +214,7 @@ onBeforeUnmount(() => {
 .select-caret {
   flex-shrink: 0;
   color: var(--color-ink-3);
-  transition: transform var(--duration-slow) var(--ease-pop);
+  transition: transform var(--duration-slow) var(--ease-plain);
 }
 .select-caret.open {
   transform: rotate(180deg);
@@ -267,11 +267,11 @@ onBeforeUnmount(() => {
   color: var(--color-ink-2);
 }
 
-/* 非线性弹出:轻微过冲的进入,利落的退出 */
+/* 非线性进入(无过冲,非动量交互不加弹性),利落的退出 */
 .select-pop-enter-active {
   transition:
     opacity 180ms var(--ease-plain),
-    transform 300ms var(--ease-pop);
+    transform var(--duration-slow) var(--ease-plain);
 }
 .select-pop-leave-active {
   transition:
