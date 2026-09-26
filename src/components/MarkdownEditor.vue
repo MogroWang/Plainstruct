@@ -436,10 +436,12 @@ function buildWsDecorations(v: EditorView): DecorationSet {
     for (let pos = from; pos <= to; ) {
       const line = v.state.doc.lineAt(pos);
       const text = line.text;
-      // 段首全角缩进
+      // 段首全角缩进:逐个标记,数量一目了然
       const indent = text.match(/^　+/);
       if (indent) {
-        builder.add(line.from, line.from + indent[0].length, Decoration.replace({ widget: new IndentMark() }));
+        for (let i = 0; i < indent[0].length; i++) {
+          builder.add(line.from + i, line.from + i + 1, Decoration.replace({ widget: new IndentMark() }));
+        }
       }
       // 行尾硬换行(两个及以上尾随空格)
       const trail = text.match(/ {2,}$/);
@@ -516,6 +518,47 @@ function makeWritingExtensions(): Extension[] {
 
 const writingComp = new Compartment();
 
+/* ---------- 删除硬换行时清理行尾空格 ---------- */
+
+/** Backspace 在行首:上一行是硬换行时,连行尾空格一起删除,避免残留多余空格 */
+function backspaceClean(v: EditorView): boolean {
+  const { state } = v;
+  const range = state.selection.main;
+  if (!range.empty) return false;
+  const line = state.doc.lineAt(range.from);
+  if (range.from !== line.from || line.number === 1) return false;
+  const prev = state.doc.line(line.number - 1);
+  const m = prev.text.match(/ {2,}$/);
+  if (!m) return false;
+  const from = prev.to - m[0].length;
+  v.dispatch({
+    changes: { from, to: line.from },
+    selection: { anchor: from },
+    scrollIntoView: true,
+  });
+  v.focus();
+  return true;
+}
+
+/** Delete 在行尾:当前行是硬换行行时,连行尾空格一起删除 */
+function deleteClean(v: EditorView): boolean {
+  const { state } = v;
+  const range = state.selection.main;
+  if (!range.empty) return false;
+  const line = state.doc.lineAt(range.to);
+  if (range.to !== line.to || line.number >= state.doc.lines) return false;
+  const m = line.text.match(/ {2,}$/);
+  if (!m) return false;
+  const from = line.to - m[0].length;
+  v.dispatch({
+    changes: { from, to: line.to + 1 },
+    selection: { anchor: from },
+    scrollIntoView: true,
+  });
+  v.focus();
+  return true;
+}
+
 /* ---------- 初始化 ---------- */
 
 onMounted(() => {
@@ -533,6 +576,8 @@ onMounted(() => {
               return true;
             },
           },
+          { key: "Backspace", run: backspaceClean },
+          { key: "Delete", run: deleteClean },
           { key: "Mod-b", run: () => (wrapSelection("**"), true) },
           { key: "Mod-i", run: () => (wrapSelection("*"), true) },
           { key: "Mod-1", run: () => (setHeading(1), true) },
