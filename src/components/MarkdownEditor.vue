@@ -1,9 +1,9 @@
 <script setup lang="ts">
-/** CodeMirror 6 Markdown 编辑器 -- 格式工具栏 + 快捷键 + 列表续行,素构浅色高亮 */
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+/** CodeMirror 6 Markdown 编辑器 -- 格式工具栏 + 快捷键 + 列表续行 + 空白标记,素构浅色高亮 */
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { EditorView, keymap } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { Decoration, DecorationSet, EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
+import { Compartment, EditorState, type Extension, RangeSetBuilder } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
@@ -22,6 +22,23 @@ let view: EditorView | null = null;
 
 /** 快捷键提示里的主修饰键:mac 用 ⌘,其余显示 Ctrl */
 const mod = app.platform === "macos" ? "⌘" : "Ctrl";
+
+/* ---------- 写作偏好(空白标记 + 换行/缩进键位),设置页即时可改 ---------- */
+
+const breakLabel = computed(() => {
+  const k = app.settings.editorBreakKey ?? "enter";
+  return k === "enter" ? "Enter" : k === "modEnter" ? `${mod}Enter` : "";
+});
+const indentLabel = computed(() => {
+  const k = app.settings.editorIndentKey ?? "tab";
+  return k === "tab" ? "Tab" : k === "modShiftI" ? `${mod}⇧I` : "";
+});
+const breakTitle = computed(() =>
+  breakLabel.value ? `${t("editor.toolbar.break")} (${breakLabel.value})` : t("editor.toolbar.break"),
+);
+const indentTitle = computed(() =>
+  indentLabel.value ? `${t("editor.toolbar.indent")} (${indentLabel.value})` : t("editor.toolbar.indent"),
+);
 
 const plainHighlight = HighlightStyle.define([
   { tag: tg.heading, fontWeight: "600", color: "var(--color-ink)" },
@@ -387,6 +404,118 @@ function continueList(v: EditorView): boolean {
   return true;
 }
 
+/* ---------- 空白标记:硬换行(¶)与首行缩进(⇥) ---------- */
+
+class BreakMark extends WidgetType {
+  override eq() {
+    return true;
+  }
+  override toDOM() {
+    const span = document.createElement("span");
+    span.className = "ps-ws-mark";
+    span.textContent = "¶";
+    return span;
+  }
+}
+
+class IndentMark extends WidgetType {
+  override eq() {
+    return true;
+  }
+  override toDOM() {
+    const span = document.createElement("span");
+    span.className = "ps-ws-mark";
+    span.textContent = "⇥";
+    return span;
+  }
+}
+
+function buildWsDecorations(v: EditorView): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  for (const { from, to } of v.visibleRanges) {
+    for (let pos = from; pos <= to; ) {
+      const line = v.state.doc.lineAt(pos);
+      const text = line.text;
+      // 段首全角缩进
+      const indent = text.match(/^　+/);
+      if (indent) {
+        builder.add(line.from, line.from + indent[0].length, Decoration.replace({ widget: new IndentMark() }));
+      }
+      // 行尾硬换行(两个及以上尾随空格)
+      const trail = text.match(/ {2,}$/);
+      if (trail) {
+        builder.add(line.to - trail[0].length, line.to, Decoration.replace({ widget: new BreakMark() }));
+      }
+      if (line.to >= to) break;
+      pos = line.to + 1;
+    }
+  }
+  return builder.finish();
+}
+
+class WsMarkerView {
+  decorations: DecorationSet;
+
+  constructor(v: EditorView) {
+    this.decorations = buildWsDecorations(v);
+  }
+
+  update(u: ViewUpdate) {
+    if (u.docChanged || u.viewportChanged) this.decorations = buildWsDecorations(u.view);
+  }
+}
+
+/** 空白标记插件(仅 editorWhitespace 开启时装载) */
+const wsMarkers = ViewPlugin.fromClass(WsMarkerView, {
+  decorations: (v: WsMarkerView) => v.decorations,
+});
+
+/* ---------- 写作键位(换行/缩进,随设置重配) ---------- */
+
+/** Tab 首行缩进:结构行(列表/引用/表格/围栏/标题)交给默认缩进(嵌套),空行直接落缩进 */
+function tabIndent(): boolean {
+  if (!view) return false;
+  const state = view.state;
+  const line = state.doc.lineAt(state.selection.main.head);
+  if (BLOCK_LINE_RE.test(line.text)) return false;
+  if (line.text.trim() === "") {
+    view.dispatch({
+      changes: { from: line.from, insert: "　　" },
+      selection: { anchor: line.from + 2 },
+      scrollIntoView: true,
+    });
+    view.focus();
+    return true;
+  }
+  toggleIndent();
+  return true;
+}
+
+function makeWritingExtensions(): Extension[] {
+  const exts: Extension[] = [];
+  const keys: KeyBinding[] = [];
+  const breakKey = app.settings.editorBreakKey ?? "enter";
+  const indentKey = app.settings.editorIndentKey ?? "tab";
+  if (breakKey === "enter") {
+    // 列表续行优先,其余位置按硬换行处理
+    keys.push({ key: "Enter", run: (v) => (continueList(v) ? true : (insertBreak(), true)) });
+    keys.push({ key: "Mod-Enter", run: () => (insertBreak(), true) });
+  } else if (breakKey === "modEnter") {
+    keys.push({ key: "Mod-Enter", run: () => (insertBreak(), true) });
+  }
+  if (indentKey === "tab") {
+    keys.push({ key: "Tab", run: tabIndent });
+    keys.push({ key: "Mod-Shift-i", run: () => (toggleIndent(), true) });
+  } else if (indentKey === "modShiftI") {
+    keys.push({ key: "Mod-Shift-i", run: () => (toggleIndent(), true) });
+  }
+  if (keys.length) exts.push(keymap.of(keys));
+  if (app.settings.editorWhitespace ?? true) exts.push(wsMarkers);
+  return exts;
+}
+
+const writingComp = new Compartment();
+
 /* ---------- 初始化 ---------- */
 
 onMounted(() => {
@@ -395,6 +524,7 @@ onMounted(() => {
       doc: editor.content,
       extensions: [
         history(),
+        writingComp.of(makeWritingExtensions()),
         keymap.of([
           {
             key: "Mod-s",
@@ -419,9 +549,6 @@ onMounted(() => {
           { key: "Mod-Shift-8", run: () => (toggleBullet(), true) },
           { key: "Mod-Shift-7", run: () => (toggleOrdered(), true) },
           { key: "Mod-Shift-t", run: () => (toggleTask(), true) },
-          { key: "Mod-Enter", run: () => (insertBreak(), true) },
-          { key: "Mod-Shift-i", run: () => (toggleIndent(), true) },
-          { key: "Enter", run: continueList },
           ...defaultKeymap,
           ...historyKeymap,
           ...searchKeymap,
@@ -441,6 +568,14 @@ onMounted(() => {
   // 注册到右键菜单:编辑器内的右键文本操作直接作用于 CodeMirror 选区
   registerCmView(host.value!, view);
 });
+
+// 设置变更即时重配写作键位与空白标记
+watch(
+  () => [app.settings.editorBreakKey, app.settings.editorIndentKey, app.settings.editorWhitespace],
+  () => {
+    view?.dispatch({ effects: writingComp.reconfigure(makeWritingExtensions()) });
+  },
+);
 
 // 打开新文档时整体替换(不触发自动保存回路)
 watch(
@@ -510,10 +645,10 @@ defineExpose({
         <AppIcon name="minus" :size="15" />
       </button>
       <span class="tb-sep" />
-      <button class="tb-btn" :title="t('editor.toolbar.indent', { mod })" @click="toggleIndent">
+      <button class="tb-btn" :title="indentTitle" @click="toggleIndent">
         <AppIcon name="indent" :size="15" />
       </button>
-      <button class="tb-btn" :title="t('editor.toolbar.break', { mod })" @click="insertBreak">
+      <button class="tb-btn" :title="breakTitle" @click="insertBreak">
         <AppIcon name="wrapText" :size="15" />
       </button>
     </div>
@@ -555,5 +690,16 @@ defineExpose({
   height: 14px;
   margin: 0 4px;
   background: var(--color-line);
+}
+</style>
+
+<style>
+/* 空白标记(CodeMirror 内容在 scoped 之外,用全局样式) */
+.ps-ws-mark {
+  color: var(--color-ink-3);
+  opacity: 0.55;
+  font-size: 0.85em;
+  user-select: none;
+  pointer-events: none;
 }
 </style>

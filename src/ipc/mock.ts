@@ -25,7 +25,7 @@ export const DEMO_ROOT = "C:/Sites/Plainstruct 演示站点";
 const files = new Map<string, string>();
 /** 自定义主题 id -> 文件表 */
 const customThemes = new Map<string, Record<string, string>>();
-let settings: AppSettings = { locale: "zh-CN", autosave: true, theme: "system", uiFont: "system", editorFont: "default" };
+let settings: AppSettings = { locale: "zh-CN", autosave: true, theme: "system", uiFont: "system", editorFont: "default", editorWhitespace: true, editorBreakKey: "enter", editorIndentKey: "tab" };
 let recent: RecentSite[] = [];
 let currentRoot: string | null = null;
 let siteCounter = 0;
@@ -192,7 +192,7 @@ function seedDemo() {
 
 function ensureInit() {
   seedDemo();
-  settings = lsGet<AppSettings>(LS_SETTINGS, { locale: "zh-CN", autosave: true, theme: "system", uiFont: "system", editorFont: "default" });
+  settings = lsGet<AppSettings>(LS_SETTINGS, { locale: "zh-CN", autosave: true, theme: "system", uiFont: "system", editorFont: "default", editorWhitespace: true, editorBreakKey: "enter", editorIndentKey: "tab" });
   recent = lsGet<RecentSite[]>(LS_RECENT, [
     { name: "演示站点", path: DEMO_ROOT, openedAt: Date.now() },
   ]);

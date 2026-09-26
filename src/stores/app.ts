@@ -4,7 +4,9 @@ import type {
   AppSettings,
   AppTheme,
   Bootstrap,
+  EditorBreakKey,
   EditorFontMode,
+  EditorIndentKey,
   Locale,
   Platform,
   RecentSite,
@@ -22,6 +24,13 @@ export interface AppearanceSettings {
   uiFontCustom?: string;
   editorFont?: EditorFontMode;
   editorFontCustom?: string;
+}
+
+/** 编辑器写作偏好(空白标记与键位) */
+export interface EditorPrefs {
+  editorWhitespace?: boolean;
+  editorBreakKey?: EditorBreakKey;
+  editorIndentKey?: EditorIndentKey;
 }
 
 /** 常用字体栈(与素构站点主题一致) */
@@ -58,6 +67,9 @@ export const useAppStore = defineStore("app", {
           theme: "system",
           uiFont: "system",
           editorFont: "default",
+          editorWhitespace: true,
+          editorBreakKey: "enter",
+          editorIndentKey: "tab",
         }
       );
     },
@@ -108,6 +120,15 @@ export const useAppStore = defineStore("app", {
         settings: { ...this.settings, ...patch },
       };
       this.applyAppearance();
+      await ipc.saveSettings(patch);
+    },
+
+    /** 保存编辑器写作偏好(空白标记与键位),编辑器经响应式 watch 自行重配 */
+    async setEditorPrefs(patch: EditorPrefs) {
+      this.bootstrap = {
+        ...this.bootstrap!,
+        settings: { ...this.settings, ...patch },
+      };
       await ipc.saveSettings(patch);
     },
 

@@ -11,6 +11,10 @@ export type AppTheme = "light" | "dark" | "sepia" | "mint" | "ocean" | "plum" | 
 export type UiFontMode = "system" | "serif" | "mono" | "custom";
 /** 编辑器字体模式:默认等宽 / 跟随界面 / 衬线 / 自定义 font-family */
 export type EditorFontMode = "default" | "ui" | "serif" | "custom";
+/** 硬换行触发键 */
+export type EditorBreakKey = "enter" | "modEnter" | "none";
+/** 首行缩进触发键 */
+export type EditorIndentKey = "tab" | "modShiftI" | "none";
 
 export interface AppSettings {
   locale: Locale;
@@ -20,6 +24,12 @@ export interface AppSettings {
   uiFontCustom?: string;
   editorFont?: EditorFontMode;
   editorFontCustom?: string;
+  /** 空白标记显示:硬换行(¶)与首行缩进(⇥)的可见标记 */
+  editorWhitespace?: boolean;
+  /** 硬换行触发键,默认 Enter */
+  editorBreakKey?: EditorBreakKey;
+  /** 首行缩进触发键,默认 Tab */
+  editorIndentKey?: EditorIndentKey;
 }
 
 export interface RecentSite {

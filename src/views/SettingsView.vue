@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAppStore } from "@/stores/app";
 import { ipc } from "@/ipc/ipc";
-import type { EditorFontMode, Locale, UiFontMode } from "@/ipc/types";
+import type { EditorBreakKey, EditorFontMode, EditorIndentKey, Locale, UiFontMode } from "@/ipc/types";
 import { APP_THEMES, type AppThemeSwatch } from "@/lib/app-themes";
 import AppIcon from "@/components/AppIcon.vue";
 import SelectMenu from "@/components/SelectMenu.vue";
@@ -24,6 +24,39 @@ const localeModel = computed({
 async function onAutosaveToggle() {
   await app.setAutosave(!app.settings.autosave);
 }
+
+/* ---------- 编辑器写作偏好(空白标记与键位) ---------- */
+
+const whitespaceModel = computed({
+  get: () => app.settings.editorWhitespace ?? true,
+  set: (v: boolean) => void app.setEditorPrefs({ editorWhitespace: v }),
+});
+
+async function onWhitespaceToggle() {
+  await app.setEditorPrefs({ editorWhitespace: !(app.settings.editorWhitespace ?? true) });
+}
+
+const breakKeyOptions = computed<{ value: EditorBreakKey; label: string }[]>(() => [
+  { value: "enter", label: t("settings.breakEnter") },
+  { value: "modEnter", label: t("settings.breakModEnter") },
+  { value: "none", label: t("settings.keyNone") },
+]);
+
+const breakKeyModel = computed({
+  get: () => app.settings.editorBreakKey ?? "enter",
+  set: (v: EditorBreakKey) => void app.setEditorPrefs({ editorBreakKey: v }),
+});
+
+const indentKeyOptions = computed<{ value: EditorIndentKey; label: string }[]>(() => [
+  { value: "tab", label: t("settings.indentTab") },
+  { value: "modShiftI", label: t("settings.indentModShiftI") },
+  { value: "none", label: t("settings.keyNone") },
+]);
+
+const indentKeyModel = computed({
+  get: () => app.settings.editorIndentKey ?? "tab",
+  set: (v: EditorIndentKey) => void app.setEditorPrefs({ editorIndentKey: v }),
+});
 
 /* ---------- 个性化(主题与字体) ---------- */
 
@@ -217,6 +250,44 @@ function openRelease(url: string) {
                       :class="app.settings.autosave ? 'translate-x-[22px]' : 'translate-x-[4px]'"
                     />
                   </button>
+                </div>
+              </div>
+
+              <h3 class="settings-heading" style="--i: 1">
+                {{ t("settings.sectionWriting") }}
+              </h3>
+              <div class="settings-card">
+                <div class="settings-row" style="--i: 0">
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-medium">{{ t("settings.editorWhitespace") }}</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.editorWhitespaceHint") }}</p>
+                  </div>
+                  <button
+                    class="relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors"
+                    :class="whitespaceModel ? 'bg-accent' : 'bg-line-strong'"
+                    role="switch"
+                    :aria-checked="whitespaceModel"
+                    @click="onWhitespaceToggle"
+                  >
+                    <span
+                      class="inline-block h-4 w-4 rounded-full bg-surface shadow-sm transition-transform"
+                      :class="whitespaceModel ? 'translate-x-[22px]' : 'translate-x-[4px]'"
+                    />
+                  </button>
+                </div>
+                <div class="settings-row" style="--i: 1">
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-medium">{{ t("settings.editorBreakKey") }}</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.editorBreakKeyHint") }}</p>
+                  </div>
+                  <SelectMenu v-model="breakKeyModel" :options="breakKeyOptions" align="right" class="shrink-0" />
+                </div>
+                <div class="settings-row" style="--i: 2">
+                  <div class="min-w-0">
+                    <p class="text-[13.5px] font-medium">{{ t("settings.editorIndentKey") }}</p>
+                    <p class="mt-0.5 text-[12px] leading-relaxed text-ink-3">{{ t("settings.editorIndentKeyHint") }}</p>
+                  </div>
+                  <SelectMenu v-model="indentKeyModel" :options="indentKeyOptions" align="right" class="shrink-0" />
                 </div>
               </div>
             </template>
