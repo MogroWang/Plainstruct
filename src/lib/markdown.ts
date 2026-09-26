@@ -180,7 +180,19 @@ md.core.ruler.after("plainstruct-tasks", "plainstruct-links", (state) => {
 /** 渲染正文(front-matter 已剥离) */
 export function renderMarkdown(body: string, env: MdEnv): string {
   slugUsed = new Map();
-  return md.render(body, env);
+  return md.render(preprocessHardBreakLines(body), env);
+}
+
+/** 把「仅由硬换行空格组成的行」(编辑器 Enter 在空行产生的 ¶ 行)转换为 <br>,
+ *  否则 Markdown 会把仅空白的行当作段落分隔,硬换行标记在渲染中失效。代码块内不处理。 */
+function preprocessHardBreakLines(body: string): string {
+  const lines = body.split("\n");
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*(```|~~~)/.test(lines[i])) inFence = !inFence;
+    if (!inFence && /^[ ]{2,}[ \t]*$/.test(lines[i])) lines[i] = "<br>";
+  }
+  return lines.join("\n");
 }
 
 export interface Heading {
