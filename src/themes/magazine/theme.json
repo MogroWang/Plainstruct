@@ -1,0 +1,85 @@
+{
+  "id": "magazine",
+  "name": "专栏",
+  "version": "2.0.0",
+  "author": "MogroWang Studio",
+  "type": "blog",
+  "description": "杂志编辑部风:衬线报头,双线分章,栏目气度。",
+  "config": [
+    {
+      "key": "accentColor",
+      "label": "强调色",
+      "type": "color",
+      "default": "#35594e"
+    },
+    {
+      "key": "contentWidth",
+      "label": "正文宽度(px)",
+      "type": "number",
+      "default": 720,
+      "min": 520,
+      "max": 900,
+      "step": 20
+    },
+    {
+      "key": "postsPerPage",
+      "label": "每页文章数",
+      "type": "number",
+      "default": 10,
+      "min": 3,
+      "max": 30,
+      "step": 1
+    },
+    {
+      "key": "bodyFont",
+      "label": "正文字体",
+      "type": "select",
+      "default": "serif",
+      "options": [
+        "system",
+        "serif",
+        "mono",
+        "custom"
+      ]
+    },
+    {
+      "key": "customFont",
+      "label": "自定义字体(font-family)",
+      "type": "text",
+      "default": "",
+      "visibleIf": {
+        "key": "bodyFont",
+        "equals": "custom"
+      }
+    },
+    {
+      "key": "showDate",
+      "label": "显示文章日期",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "key": "pageTransition",
+      "label": "页面过渡动画",
+      "type": "select",
+      "default": "淡入上浮",
+      "options": [
+        "关闭",
+        "淡入",
+        "淡入上浮",
+        "缩放浮现",
+        "滑入",
+        "弹性浮现",
+        "模糊聚焦",
+        "翻页",
+        "揭开"
+      ]
+    },
+    {
+      "key": "showFooterCredit",
+      "label": "在底部显示由 Plainstruct 创建",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}

@@ -34,6 +34,18 @@ import blogDarkMeta from "./blog-dark/theme.json";
 import blogDarkLayout from "./blog-dark/templates/layout.hbs?raw";
 import blogDarkPage from "./blog-dark/templates/page.hbs?raw";
 import blogDarkCss from "./blog-dark/assets/style.css?raw";
+import magazineMeta from "./magazine/theme.json";
+import magazineLayout from "./magazine/templates/layout.hbs?raw";
+import magazinePage from "./magazine/templates/page.hbs?raw";
+import magazineCss from "./magazine/assets/style.css?raw";
+import devlogMeta from "./devlog/theme.json";
+import devlogLayout from "./devlog/templates/layout.hbs?raw";
+import devlogPage from "./devlog/templates/page.hbs?raw";
+import devlogCss from "./devlog/assets/style.css?raw";
+import minimalMeta from "./minimal/theme.json";
+import minimalLayout from "./minimal/templates/layout.hbs?raw";
+import minimalPage from "./minimal/templates/page.hbs?raw";
+import minimalCss from "./minimal/assets/style.css?raw";
 
 /** theme.json 内写作 "type",元数据契约字段为 siteType,导入时统一映射 */
 function toMeta(meta: Record<string, unknown>): ThemeMeta {
@@ -112,6 +124,33 @@ export const builtinThemes: ThemeBundle[] = [
       "templates/layout.hbs": blogDarkLayout,
       "templates/page.hbs": blogDarkPage,
       "assets/style.css": blogDarkCss,
+    },
+  },
+  {
+    meta: toMeta(magazineMeta),
+    files: {
+      "theme.json": JSON.stringify(magazineMeta, null, 2),
+      "templates/layout.hbs": magazineLayout,
+      "templates/page.hbs": magazinePage,
+      "assets/style.css": magazineCss,
+    },
+  },
+  {
+    meta: toMeta(devlogMeta),
+    files: {
+      "theme.json": JSON.stringify(devlogMeta, null, 2),
+      "templates/layout.hbs": devlogLayout,
+      "templates/page.hbs": devlogPage,
+      "assets/style.css": devlogCss,
+    },
+  },
+  {
+    meta: toMeta(minimalMeta),
+    files: {
+      "theme.json": JSON.stringify(minimalMeta, null, 2),
+      "templates/layout.hbs": minimalLayout,
+      "templates/page.hbs": minimalPage,
+      "assets/style.css": minimalCss,
     },
   },
 ];

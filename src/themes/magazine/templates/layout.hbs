@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="{{#if site.locale}}{{site.locale}}{{else}}zh-CN{{/if}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{#if page.fullTitle}}{{page.fullTitle}}{{else}}{{site.name}}{{/if}}</title>
+  {{#if site.description}}<meta name="description" content="{{site.description}}">{{/if}}
+  {{#if site.logo}}<link rel="icon" href="{{site.logo}}">{{/if}}
+  <style>
+    :root {
+      --ps-accent: {{config.accentColor}};
+      --ps-content-w: {{config.contentWidth}}px;
+    }
+  </style>
+  <link rel="stylesheet" href="{{asset "assets/style.css"}}">
+</head>
+  <body class="blog font-{{config.bodyFont}}{{#if (eq config.pageTransition "淡入")}} ps-anim-fade{{/if}}{{#if (eq config.pageTransition "淡入上浮")}} ps-anim-rise{{/if}}{{#if (eq config.pageTransition "缩放浮现")}} ps-anim-zoom{{/if}}{{#if (eq config.pageTransition "滑入")}} ps-anim-slide{{/if}}{{#if (eq config.pageTransition "弹性浮现")}} ps-anim-spring{{/if}}{{#if (eq config.pageTransition "模糊聚焦")}} ps-anim-blur{{/if}}{{#if (eq config.pageTransition "翻页")}} ps-anim-flip{{/if}}{{#if (eq config.pageTransition "揭开")}} ps-anim-wipe{{/if}}"{{#if (eq config.bodyFont "custom")}} style="--ps-font-body: {{config.customFont}}"{{/if}}>
+  <header class="blog-topbar">
+    <a class="blog-brand" href="{{asset "index.html"}}">
+      {{#if site.logo}}<img class="blog-logo" src="{{site.logo}}" alt="{{site.name}}">{{/if}}
+      <span class="blog-brand-text">
+        <span class="blog-site-name">{{site.name}}</span>
+        {{#if site.description}}<span class="blog-site-desc">{{site.description}}</span>{{/if}}
+      </span>
+    </a>
+    {{#if nav}}
+      <nav class="blog-nav" aria-label="站点导航">
+        {{#each nav}}<a href="{{this.url}}"{{#if this.current}} class="current"{{/if}}>{{this.title}}</a>{{/each}}
+      </nav>
+    {{/if}}
+  </header>
+  <main class="blog-main">
+    {{> page}}
+    {{#if config.showFooterCredit}}
+      <footer class="blog-footer">
+        <a href="https://github.com/MogroWang/Plainstruct" target="_blank" rel="noopener">由 Plainstruct 创建</a>
+      </footer>
+    {{/if}}
+  </main>
+  <script>
+    (function () {
+      /* 文章页 TOC:滚动时点亮当前章节(最后一个滚过上沿 30% 处的标题) */
+      var toc = document.querySelector(".blog-toc");
+      if (!toc) return;
+      var byId = {};
+      Array.prototype.forEach.call(toc.querySelectorAll("a[href^='#']"), function (a) {
+        try {
+          byId[decodeURIComponent(a.getAttribute("href").slice(1))] = a;
+        } catch (err) {}
+      });
+      var headings = Array.prototype.slice.call(
+        document.querySelectorAll(".blog-post-body h2[id], .blog-post-body h3[id]")
+      ).filter(function (h) { return byId[h.id]; });
+      if (!headings.length) return;
+      var ticking = false;
+      function update() {
+        ticking = false;
+        var line = window.innerHeight * 0.3;
+        var activeId = "";
+        for (var i = 0; i < headings.length; i++) {
+          if (headings[i].getBoundingClientRect().top <= line) activeId = headings[i].id;
+          else break;
+        }
+        Array.prototype.forEach.call(toc.querySelectorAll("a.current"), function (a) {
+          a.classList.remove("current");
+        });
+        if (activeId && byId[activeId]) byId[activeId].classList.add("current");
+      }
+      window.addEventListener("scroll", function () {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(update);
+        }
+      }, { passive: true });
+      update();
+    })();
+  </script>
+</body>
+</html>
