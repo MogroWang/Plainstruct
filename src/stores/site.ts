@@ -159,8 +159,8 @@ export const useSiteStore = defineStore("site", {
 
     /* ---------- 内容操作 ---------- */
 
-    async createDoc(dir: string, name: string, title?: string) {
-      const path = await ipc.createDoc(dir, name, title);
+    async createDoc(dir: string, name: string, title?: string, description?: string) {
+      const path = await ipc.createDoc(dir, name, title, description);
       await this.refreshTree();
       await useEditorStore().openDoc(this.findDoc(path) ?? { name, path, type: "file" });
     },

@@ -1,17 +1,21 @@
 <script setup lang="ts">
 /** 编辑器实时预览 -- iframe 内完整渲染,与构建同一管线(预览即产出) */
 import { onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useEditorStore } from "@/stores/editor";
 import { useSiteStore } from "@/stores/site";
 import { useThemeStore } from "@/stores/theme";
+import { useUiStore } from "@/stores/ui";
 import { useAppStore } from "@/stores/app";
 import { ipc } from "@/ipc/ipc";
 import { renderPreview } from "@/lib/builder";
-import { joinPosix } from "@/lib/paths";
+import { joinPosix, stripExt } from "@/lib/paths";
 
+const { t } = useI18n();
 const editor = useEditorStore();
 const site = useSiteStore();
 const theme = useThemeStore();
+const ui = useUiStore();
 const app = useAppStore();
 
 const frame = ref<HTMLIFrameElement>();
@@ -77,13 +81,22 @@ onMounted(() => {
   else frame.value?.addEventListener("load", init, { once: true });
 });
 
-/** 站内链接 -> 打开对应文档;外链 -> 系统浏览器 */
+/** 站内链接 -> 打开对应文档;外链 -> 系统浏览器;
+ *  按钮/无法在预览中打开的链接 -> 提示仅供预览 */
 function attachClickHandlers() {
   const doc = frame.value?.contentDocument;
   if (!doc) return;
   doc.addEventListener("click", (e) => {
-    const anchor = (e.target as HTMLElement | null)?.closest("a");
-    if (!anchor) return;
+    const el = e.target as HTMLElement | null;
+    const anchor = el?.closest("a");
+    // 按钮元素(主题的抽屉开关/折叠按钮等)在预览中无交互
+    if (!anchor) {
+      if (el?.closest("button,[role='button']")) {
+        e.preventDefault();
+        ui.toast(t("build.previewOnly"), "info");
+      }
+      return;
+    }
     const href = anchor.getAttribute("href") ?? "";
     if (/^https?:/i.test(href)) {
       e.preventDefault();
@@ -93,14 +106,17 @@ function attachClickHandlers() {
     if (href.startsWith("#")) return; // 锚点跳转交给 iframe 自身
     e.preventDefault();
     const target = anchor.getAttribute("data-doc") ?? resolveInternal(href);
-    if (target) {
-      const node = site.findDoc(target);
-      if (node) void editor.openDoc(node);
+    const node = target ? site.findDoc(target) : null;
+    if (node) {
+      void editor.openDoc(node);
+      return;
     }
+    // 站内链接但预览无法呈现(如分页页 page/N)
+    ui.toast(t("build.previewOnly"), "info");
   });
 }
 
-/** 无 data-doc 的相对链接(如文件夹链接)解析为文档路径 */
+/** 无 data-doc 的相对链接(主题模板生成的 .html 链接/文件夹链接)解析为文档路径 */
 function resolveInternal(href: string): string | null {
   if (!editor.activePath || href.startsWith("http")) return null;
   const clean = decodeURIComponent(href.split("#")[0]).replace(/\/+$/, "");
@@ -109,6 +125,8 @@ function resolveInternal(href: string): string | null {
     ? editor.activePath.slice(0, editor.activePath.lastIndexOf("/"))
     : "";
   const resolved = joinPosix(base, clean);
+  // 指向具体页面(导航/prev/next) -> 同名文档;指向目录 -> 目录落地页
+  if (/\.html?$/i.test(resolved)) return stripExt(resolved) + ".md";
   return `${resolved}/index.md`;
 }
 

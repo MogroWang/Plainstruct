@@ -221,6 +221,7 @@ pub fn create_doc(
     dir: String,
     name: String,
     title: Option<String>,
+    description: Option<String>,
 ) -> Result<String, String> {
     ensure_main(&window)?;
     let root = state.site_root()?;
@@ -239,7 +240,12 @@ pub fn create_doc(
     let doc_title = title
         .filter(|t| !t.trim().is_empty())
         .unwrap_or_else(|| target.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default());
-    let template = format!("---\ntitle: {doc_title}\n---\n\n正文。\n");
+    let desc_line = description
+        .map(|d| d.trim().to_string())
+        .filter(|d| !d.is_empty())
+        .map(|d| format!("description: {d}\n"))
+        .unwrap_or_default();
+    let template = format!("---\ntitle: {doc_title}\n{desc_line}---\n\n正文。\n");
     std::fs::write(&target, template).map_err(|e| e.to_string())?;
     Ok(rel_posix(&content, &target))
 }

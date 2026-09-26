@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import type { TreeNode } from "@/ipc/types";
 import { useSiteStore } from "@/stores/site";
 import { useEditorStore } from "@/stores/editor";
+import { useThemeStore } from "@/stores/theme";
 import { useUiStore } from "@/stores/ui";
 import { useContextMenuStore, type MenuItem } from "@/stores/contextMenu";
 import { ipc } from "@/ipc/ipc";
@@ -15,6 +16,7 @@ import PromptModal from "./PromptModal.vue";
 const { t } = useI18n();
 const site = useSiteStore();
 const editor = useEditorStore();
+const theme = useThemeStore();
 const ui = useUiStore();
 const ctxMenu = useContextMenuStore();
 
@@ -248,14 +250,15 @@ const promptInitial = () => {
   return "";
 };
 
-async function onPromptConfirm(value: string) {
+async function onPromptConfirm(value: string, extra = "") {
   const p = prompt.value;
   prompt.value = null;
   if (!p) return;
   const name = safeName(value);
   try {
     if (p.mode === "newDoc") {
-      await site.createDoc(p.dir, name);
+      // 博客文章的副标题即 front-matter description
+      await site.createDoc(p.dir, name, undefined, extra || undefined);
     } else if (p.mode === "newFolder") {
       await site.createFolder(p.parent, name);
     } else {
@@ -624,6 +627,8 @@ async function onTreeDrop(e: DragEvent) {
       :label="promptLabel()"
       :placeholder="t('tree.namePlaceholder')"
       :initial="promptInitial()"
+      :extra-label="prompt?.mode === 'newDoc' && theme.siteType === 'blog' ? t('tree.subtitle') : undefined"
+      :extra-placeholder="t('tree.subtitlePlaceholder')"
       :confirm-text="prompt?.mode === 'newDoc' || prompt?.mode === 'newFolder' ? t('common.create') : t('common.confirm')"
       @confirm="onPromptConfirm"
       @cancel="prompt = null"

@@ -363,7 +363,7 @@ export const mock = {
     files.set(`${currentRoot}/content/${path}`, content);
   },
 
-  async createDoc(dir: string, name: string, title?: string): Promise<string> {
+  async createDoc(dir: string, name: string, title?: string, description?: string): Promise<string> {
     // 与 Rust 端一致:用户已带 .md 后缀时不重复追加
     const base = name.toLowerCase().endsWith(".md") ? name.slice(0, -3) : name;
     let rel = dir ? `${dir}/${base}.md` : `${base}.md`;
@@ -373,9 +373,10 @@ export const mock = {
       i++;
     }
     const docTitle = title?.trim() || base;
+    const descLine = description?.trim() ? `description: ${description.trim()}\n` : "";
     files.set(
       `${currentRoot}/content/${rel}`,
-      `---\ntitle: ${docTitle}\n---\n\n# ${docTitle}\n\n正文。\n`,
+      `---\ntitle: ${docTitle}\n${descLine}---\n\n正文。\n`,
     );
     return rel;
   },

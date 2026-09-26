@@ -89,10 +89,15 @@ export const ipc = {
   saveDoc(path: string, content: string): Promise<void> {
     return inTauri ? invoke<void>("save_doc", { path, content }) : mock.saveDoc(path, content);
   },
-  createDoc(dir: string, name: string, title?: string): Promise<string> {
+  createDoc(dir: string, name: string, title?: string, description?: string): Promise<string> {
     return inTauri
-      ? invoke<string>("create_doc", { dir, name, title: title ?? null })
-      : mock.createDoc(dir, name, title);
+      ? invoke<string>("create_doc", {
+          dir,
+          name,
+          title: title ?? null,
+          description: description ?? null,
+        })
+      : mock.createDoc(dir, name, title, description);
   },
   createFolder(parent: string, name: string): Promise<string> {
     return inTauri
