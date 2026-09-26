@@ -22,18 +22,35 @@
       "step": 20
     },
     {
+      "key": "postsPerPage",
+      "label": "每页文章数",
+      "type": "number",
+      "default": 10,
+      "min": 3,
+      "max": 30,
+      "step": 1
+    },
+    {
       "key": "bodyFont",
       "label": "正文字体",
       "type": "select",
       "default": "system",
-      "options": ["system", "serif", "mono", "custom"]
+      "options": [
+        "system",
+        "serif",
+        "mono",
+        "custom"
+      ]
     },
     {
       "key": "customFont",
       "label": "自定义字体(font-family)",
       "type": "text",
       "default": "",
-      "visibleIf": { "key": "bodyFont", "equals": "custom" }
+      "visibleIf": {
+        "key": "bodyFont",
+        "equals": "custom"
+      }
     },
     {
       "key": "showDate",
@@ -46,7 +63,17 @@
       "label": "页面过渡动画",
       "type": "select",
       "default": "淡入上浮",
-      "options": ["关闭", "淡入", "淡入上浮", "缩放浮现", "滑入", "弹性浮现", "模糊聚焦", "翻页", "揭开"]
+      "options": [
+        "关闭",
+        "淡入",
+        "淡入上浮",
+        "缩放浮现",
+        "滑入",
+        "弹性浮现",
+        "模糊聚焦",
+        "翻页",
+        "揭开"
+      ]
     },
     {
       "key": "showFooterCredit",

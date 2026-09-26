@@ -22,6 +22,15 @@
       "step": 20
     },
     {
+      "key": "postsPerPage",
+      "label": "每页文章数",
+      "type": "number",
+      "default": 10,
+      "min": 3,
+      "max": 30,
+      "step": 1
+    },
+    {
       "key": "bodyFont",
       "label": "正文字体",
       "type": "select",

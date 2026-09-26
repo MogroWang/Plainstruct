@@ -31,6 +31,17 @@ export interface TocEntry {
   id: string;
 }
 
+/** 博客首页文章流分页(构建时按每页文章数生成 page/N 系列页) */
+export interface PaginationInfo {
+  /** 当前页码,从 1 起 */
+  current: number;
+  /** 总页数 */
+  total: number;
+  pages: { n: number; url: string; current: boolean }[];
+  prevUrl?: string;
+  nextUrl?: string;
+}
+
 export interface PageContext {
   site: { name: string; description?: string; logo?: string; locale?: string };
   page: {
@@ -50,6 +61,8 @@ export interface PageContext {
     isHome?: boolean;
     /** 页内标题大纲(博客主题文章页的 TOC 侧栏) */
     toc?: TocEntry[];
+    /** 文章流分页(仅博客首页系列页存在) */
+    pagination?: PaginationInfo;
   };
   nav: NavItem[];
   prev?: { title: string; url: string };

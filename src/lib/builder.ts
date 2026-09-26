@@ -5,7 +5,7 @@ import type { BuildReport, BuildWarning, CopyItem, OutputFile, Platform, SiteCon
 import { parseFrontMatter } from "./frontmatter";
 import { renderMarkdown, extractHeadings, type MdEnv } from "./markdown";
 import { basename, dirname, encodePath, isMarkdown, mdToHtml, relPosix, relPrefix, stripExt } from "./paths";
-import { compileTheme, mergeConfigDefaults, type NavItem, type PageContext, type PostSummary, type ThemeBundle } from "./theme-engine";
+import { compileTheme, mergeConfigDefaults, type NavItem, type PageContext, type PaginationInfo, type PostSummary, type ThemeBundle } from "./theme-engine";
 import { siteUrl } from "./preview";
 
 export interface DocMeta {
@@ -182,6 +182,22 @@ function crumbsFor(raw: RawNav[], currentHtml: string): string[] {
   return chain ? chain.slice(0, -1) : [];
 }
 
+/** 博客首页分页参数(每页文章数来自主题配置,越界时收敛) */
+export function postsPerPageOf(config: Record<string, string | number | boolean>): number {
+  const n = Math.floor(Number(config.postsPerPage));
+  return Number.isFinite(n) ? Math.min(50, Math.max(3, n)) : 10;
+}
+
+/** 博客首页系列的 extras:当前页文章切片 + 分页信息(url 由 renderOnePage 按页深换算) */
+function blogHomeExtras(
+  siteType: SiteType,
+  posts: PostSummary[],
+  current: number,
+  total: number,
+): { siteType: SiteType; posts?: PostSummary[]; pagination?: { current: number; total: number } } {
+  return { siteType, posts, pagination: { current, total } };
+}
+
 /** 渲染单页(构建与预览共用)。warnings 为空数组时收集,预览可忽略。 */
 function renderOnePage(
   site: SiteConfig,
@@ -195,8 +211,8 @@ function renderOnePage(
   resolveAsset?: MdEnv["resolveAsset"],
   /** 预览模式:logo 的绝对地址(构建时留空,使用相对路径) */
   logoUrl?: string,
-  /** 站点类型与博客文章流(博客站点传入,首页/文章页模板据此渲染) */
-  extras?: { siteType?: SiteType; posts?: PostSummary[] },
+  /** 站点类型与博客文章流(extras.posts 为当前页应展示的切片,extras.pagination 仅首页系列传入) */
+  extras?: { siteType?: SiteType; posts?: PostSummary[]; pagination?: { current: number; total: number } },
 ): PageContext & { html: string } {
   const env: MdEnv = { currentMdPath: doc.path, docMap, dirSet, warnings, resolveAsset };
   const content = renderMarkdown(doc.body, env);
@@ -208,6 +224,24 @@ function renderOnePage(
   const prev = idx > 0 ? flat[idx - 1] : undefined;
   const next = idx >= 0 && idx < flat.length - 1 ? flat[idx + 1] : undefined;
   const isBlog = (extras?.siteType ?? "docs") === "blog";
+  const pag = extras?.pagination;
+
+  // 分页页码链接:统一指向目录内 index.html,由 relPosix 换算为当前页相对地址
+  let pagination: PaginationInfo | undefined;
+  if (pag) {
+    const pageUrl = (n: number) => encodePath(relPosix(outDir, n === 1 ? "index.html" : `page/${n}/index.html`));
+    const pages = Array.from({ length: pag.total }, (_, i) => {
+      const n = i + 1;
+      return { n, url: pageUrl(n), current: n === pag.current };
+    });
+    pagination = {
+      current: pag.current,
+      total: pag.total,
+      pages,
+      prevUrl: pag.current > 1 ? pageUrl(pag.current - 1) : undefined,
+      nextUrl: pag.current < pag.total ? pageUrl(pag.current + 1) : undefined,
+    };
+  }
 
   const ctx: PageContext = {
     site: {
@@ -226,9 +260,11 @@ function renderOnePage(
       fullTitle: pageTitle(site, doc.title),
       crumbs: crumbsFor(navRaw, htmlPath),
       date: doc.date,
-      isHome: htmlPath === "index.html" || undefined,
+      // 博客首页系列(含 page/N)由模板渲染文章流
+      isHome: htmlPath === "index.html" || !!pagination || undefined,
       // 博客文章页的页内目录;标题 id 与渲染管线同源(extractHeadings 复用 slugify),锚点一致
-      toc: isBlog ? extractHeadings(doc.body) : undefined,
+      toc: isBlog && !pagination ? extractHeadings(doc.body) : undefined,
+      pagination,
     },
     nav: navForPage(navRaw, htmlPath, outDir),
     prev: prev ? { title: prev.title, url: encodePath(relPosix(outDir, prev.htmlPath!)) } : undefined,
@@ -287,8 +323,14 @@ export function renderPreview(
   const doc = metas.get(currentPath);
   if (!doc) return "";
   const siteType = site.siteType ?? "docs";
-  const extras =
-    siteType === "blog" ? { siteType, posts: buildPosts(metas) } : { siteType: siteType as SiteType };
+  // 博客根 index 预览第 1 页文章流;其余文档页不带分页数据
+  let extras: { siteType: SiteType; posts?: PostSummary[]; pagination?: { current: number; total: number } } = { siteType };
+  if (siteType === "blog" && currentPath.toLowerCase() === "index.md") {
+    const allPosts = buildPosts(metas);
+    const perPage = postsPerPageOf(config);
+    const total = Math.max(1, Math.ceil(allPosts.length / perPage));
+    extras = blogHomeExtras(siteType, allPosts.slice(0, perPage), 1, total);
+  }
   const logoUrl = site.logo
     ? siteUrl(platform, `.plainstruct/assets/${site.logo}`)
     : undefined;
@@ -333,7 +375,12 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
   const render = compileTheme(theme);
   const navRaw = buildNav(tree, metas);
   const siteType = site.siteType ?? "docs";
-  const extras = siteType === "blog" ? { siteType, posts: buildPosts(metas) } : { siteType: siteType as SiteType };
+  const isBlog = siteType === "blog";
+  const docExtras = { siteType };
+  // 博客首页分页:每页文章数来自主题配置,文章流拆成 index.html + page/N 系列页
+  const allPosts = isBlog ? buildPosts(metas) : [];
+  const perPage = postsPerPageOf(config);
+  const totalPages = Math.max(1, Math.ceil(allPosts.length / perPage));
   const warnings: BuildWarning[] = [];
   const outputs: OutputFile[] = [];
 
@@ -348,6 +395,8 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
   }
 
   for (const doc of metas.values()) {
+    // 博客的根 index.md 属于首页系列(公告正文 + 文章流),在下方单独渲染
+    if (isBlog && doc.path.toLowerCase() === "index.md") continue;
     const { html } = renderOnePage(
       site,
       config,
@@ -359,23 +408,51 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
       warnings,
       undefined,
       undefined,
-      extras,
+      docExtras,
     );
     outputs.push({ path: mdToHtml(doc.path), content: html });
   }
 
-  // 根目录:无 index.md 时自动生成站点介绍页(TOC),保证 index.html 始终存在;
-  // 博客站点生成纯文章流首页(正文留空,由主题的 posts 区块渲染)
+  // 根目录:无 index.md 时自动生成首页,保证 index.html 始终存在;
+  // 文档站点为介绍页(TOC),博客站点为第 1 页文章流
+  const homeExtras = isBlog
+    ? blogHomeExtras(siteType, allPosts.slice(0, perPage), 1, totalPages)
+    : docExtras;
   if (!mdPaths.some((p) => p.toLowerCase() === "index.md")) {
     const home: DocMeta = {
       path: "index.md",
       title: site.name,
       description: site.description,
       order: 0,
-      body: siteType === "blog" ? "" : tocHtml(navRaw, ""),
+      body: isBlog ? "" : tocHtml(navRaw, ""),
     };
-    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, home, warnings, undefined, undefined, extras);
+    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, home, warnings, undefined, undefined, homeExtras);
     outputs.push({ path: "index.html", content: html });
+  } else if (isBlog) {
+    // 有 index.md:正文作为公告栏显示在文章流上方
+    const homeDoc = metas.get(mdPaths.find((p) => p.toLowerCase() === "index.md")!)!;
+    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, homeDoc, warnings, undefined, undefined, homeExtras);
+    outputs.push({ path: "index.html", content: html });
+  }
+
+  // 博客首页系列第 2..N 页(page/N/index.html)
+  for (let n = 2; n <= totalPages; n++) {
+    const pseudo: DocMeta = { path: `page/${n}/index.md`, title: site.name, order: 0, body: "" };
+    const slice = allPosts.slice((n - 1) * perPage, n * perPage);
+    const { html } = renderOnePage(
+      site,
+      config,
+      render,
+      navRaw,
+      docMap,
+      dirSet,
+      pseudo,
+      warnings,
+      undefined,
+      undefined,
+      blogHomeExtras(siteType, slice, n, totalPages),
+    );
+    outputs.push({ path: `page/${n}/index.html`, content: html });
   }
 
   // 文件夹页:每个没有 index.md 的目录生成一个目录列表页(dir/index.html)
@@ -392,7 +469,7 @@ export async function buildSite(site: SiteConfig, theme: ThemeBundle): Promise<B
     });
   });
   for (const page of folderPages) {
-    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, page, warnings, undefined, undefined, extras);
+    const { html } = renderOnePage(site, config, render, navRaw, docMap, dirSet, page, warnings, undefined, undefined, docExtras);
     outputs.push({ path: mdToHtml(page.path), content: html });
   }
 
